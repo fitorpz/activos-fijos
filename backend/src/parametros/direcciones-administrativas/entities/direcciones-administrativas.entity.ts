@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { Usuario } from 'src/usuarios/entities/usuario.entity';
 
@@ -30,16 +31,10 @@ export class DireccionAdministrativa {
   @JoinColumn({ name: 'creado_por_id' })
   creado_por: Usuario;
 
-  @Column({ name: 'creado_por_id' })
-  creado_por_id: number;
-
-  @ManyToOne(() => Usuario, { eager: true })
+  @ManyToOne(() => Usuario, { eager: true, nullable: true })
   @JoinColumn({ name: 'actualizado_por_id' })
-  actualizado_por: Usuario;
+  actualizado_por?: Usuario;
 
-  @Column({ name: 'actualizado_por_id', nullable: true })
-  actualizado_por_id?: number;
-
-  @Column({ type: 'timestamp', nullable: true })
-  deleted_at: Date;
+  @DeleteDateColumn({ type: 'timestamp', nullable: true })
+  deleted_at?: Date;
 }

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-    baseURL: 'http://localhost:3000', // ajusta si tu API está en otro puerto
+    baseURL: 'http://localhost:3001', // ajusta si tu API está en otro puerto
 });
 
 // Interceptor para añadir el token a todas las peticiones

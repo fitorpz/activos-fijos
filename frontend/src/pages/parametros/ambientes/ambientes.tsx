@@ -5,79 +5,66 @@ import axios from '../../../utils/axiosConfig';
 export interface Usuario {
     id: number;
     nombre: string;
-    rol: string;
+    correo: string;
+    rol?: string;
 }
 
-export interface DireccionAdministrativa {
+export interface UnidadOrganizacional {
     id: number;
     codigo: string;
     descripcion: string;
-    creado_por: {
-        id: number;
-        nombre: string;
-        correo: string;
-        rol: string;
-    };
-    created_at: string;
-    actualizado_por?: {
-        id: number;
-        nombre: string;
-        correo: string;
-        rol: string;
-    } | null;
-    updated_at?: string;
 }
 
-const DireccionesAdministrativas = () => {
-    const [direcciones, setDirecciones] = useState<DireccionAdministrativa[]>([]);
-    const navigate = useNavigate();
+export interface Ambiente {
+    id: number;
+    codigo: string;
+    descripcion: string;
+    unidad_organizacional: UnidadOrganizacional;
+    creado_por: Usuario;
+    actualizado_por?: Usuario | null;
+    created_at: string;
+    updated_at?: string | null;
+}
+
+const Ambientes = () => {
+    const [ambientes, setAmbientes] = useState<Ambiente[]>([]);
     const [cargando, setCargando] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
-        obtenerDirecciones();
+        obtenerAmbientes();
     }, []);
 
-    const obtenerDirecciones = async () => {
-        const token = localStorage.getItem('token');
+    const obtenerAmbientes = async () => {
         try {
-            const res = await axios.get<DireccionAdministrativa[]>('/parametros/direcciones-administrativas', {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            console.log('Respuesta del backend:', res.data);
-            setDirecciones(res.data);
+            const res = await axios.get<Ambiente[]>('/parametros/ambientes');
+            setAmbientes(res.data);
         } catch (error) {
-            console.error('Error al obtener direcciones administrativas:', error);
+            console.error('Error al obtener ambientes:', error);
         } finally {
             setCargando(false);
         }
     };
 
-    const eliminarDireccion = async (id: number) => {
-        if (!window.confirm('¿Estás seguro de eliminar esta dirección administrativa?')) return;
+    const eliminarAmbiente = async (id: number) => {
+        if (!window.confirm('¿Estás seguro de eliminar este ambiente?')) return;
         try {
-            const token = localStorage.getItem('token');
-            await axios.delete(`/parametros/direcciones-administrativas/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            obtenerDirecciones();
+            await axios.delete(`/parametros/ambientes/${id}`);
+            obtenerAmbientes();
         } catch (error) {
-            console.error('Error al eliminar la dirección administrativa:', error);
+            console.error('Error al eliminar el ambiente:', error);
         }
     };
 
     return (
         <div className="container mt-4">
-            <h4 className="mb-3">Direcciones Administrativas</h4>
+            <h4 className="mb-3">Ambientes</h4>
 
             <button
                 className="btn btn-primary mb-3"
-                onClick={() => navigate('/parametros/direcciones-administrativas/nueva')}
+                onClick={() => navigate('/parametros/ambientes/registrar')}
             >
-                <i className="bi bi-plus-lg me-1"></i> Nueva Dirección
+                <i className="bi bi-plus-lg me-1"></i> Nuevo Ambiente
             </button>
 
             <div className="table-responsive">
@@ -87,6 +74,7 @@ const DireccionesAdministrativas = () => {
                             <th>Nro.</th>
                             <th>Código</th>
                             <th>Descripción</th>
+                            <th>Unidad Organizacional</th>
                             <th>Creado por</th>
                             <th>Fecha de Registro</th>
                             <th>Actualizado por</th>
@@ -97,40 +85,37 @@ const DireccionesAdministrativas = () => {
                     <tbody>
                         {cargando ? (
                             <tr>
-                                <td colSpan={8} className="text-center">Cargando datos...</td>
+                                <td colSpan={9} className="text-center">Cargando datos...</td>
                             </tr>
-                        ) : direcciones.length > 0 ? (
-                            direcciones.map((item, index) => (
+                        ) : ambientes.length > 0 ? (
+                            ambientes.map((item, index) => (
                                 <tr key={item.id}>
                                     <td>{index + 1}</td>
                                     <td>{item.codigo}</td>
                                     <td>{item.descripcion}</td>
+                                    <td>{item.unidad_organizacional?.descripcion || '—'}</td>
                                     <td>
                                         {item.creado_por
-                                            ? `${item.creado_por.nombre} (${item.creado_por.rol})`
+                                            ? `${item.creado_por.nombre}${item.creado_por.rol ? ` (${item.creado_por.rol})` : ''}`
                                             : '—'}
                                     </td>
                                     <td>{item.created_at ? new Date(item.created_at).toLocaleDateString('es-BO') : '—'}</td>
                                     <td>
                                         {item.actualizado_por
-                                            ? `${item.actualizado_por.nombre} (${item.actualizado_por.rol})`
+                                            ? `${item.actualizado_por.nombre}${item.actualizado_por.rol ? ` (${item.actualizado_por.rol})` : ''}`
                                             : '—'}
                                     </td>
-                                    <td>
-                                        {item.updated_at
-                                            ? new Date(item.updated_at).toLocaleDateString('es-BO')
-                                            : '—'}
-                                    </td>
+                                    <td>{item.updated_at ? new Date(item.updated_at).toLocaleDateString('es-BO') : '—'}</td>
                                     <td>
                                         <button
                                             className="btn btn-sm btn-warning me-2"
-                                            onClick={() => navigate(`/parametros/direcciones-administrativas/editar/${item.id}`)}
+                                            onClick={() => navigate(`/parametros/ambientes/editar/${item.id}`)}
                                         >
                                             <i className="bi bi-pencil-square"></i>
                                         </button>
                                         <button
                                             className="btn btn-sm btn-danger"
-                                            onClick={() => eliminarDireccion(item.id)}
+                                            onClick={() => eliminarAmbiente(item.id)}
                                         >
                                             <i className="bi bi-trash3"></i>
                                         </button>
@@ -139,7 +124,7 @@ const DireccionesAdministrativas = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={8} className="text-center">No hay registros.</td>
+                                <td colSpan={9} className="text-center">No hay registros.</td>
                             </tr>
                         )}
                     </tbody>
@@ -149,4 +134,4 @@ const DireccionesAdministrativas = () => {
     );
 };
 
-export default DireccionesAdministrativas;
+export default Ambientes;

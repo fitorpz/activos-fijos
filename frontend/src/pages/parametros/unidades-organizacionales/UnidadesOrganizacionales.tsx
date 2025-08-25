@@ -5,79 +5,62 @@ import axios from '../../../utils/axiosConfig';
 export interface Usuario {
     id: number;
     nombre: string;
-    rol: string;
+    correo: string;
+    rol?: string;
 }
 
-export interface DireccionAdministrativa {
+export interface UnidadOrganizacional {
     id: number;
     codigo: string;
     descripcion: string;
-    creado_por: {
-        id: number;
-        nombre: string;
-        correo: string;
-        rol: string;
-    };
+    area: string;
+    creado_por: Usuario;
+    creado_por_id: number;
+    actualizado_por?: Usuario | null;
+    actualizado_por_id?: number | null;
     created_at: string;
-    actualizado_por?: {
-        id: number;
-        nombre: string;
-        correo: string;
-        rol: string;
-    } | null;
-    updated_at?: string;
+    updated_at?: string | null;
 }
 
-const DireccionesAdministrativas = () => {
-    const [direcciones, setDirecciones] = useState<DireccionAdministrativa[]>([]);
-    const navigate = useNavigate();
+const UnidadesOrganizacionales = () => {
+    const [unidades, setUnidades] = useState<UnidadOrganizacional[]>([]);
     const [cargando, setCargando] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
-        obtenerDirecciones();
+        obtenerUnidades();
     }, []);
 
-    const obtenerDirecciones = async () => {
-        const token = localStorage.getItem('token');
+    const obtenerUnidades = async () => {
         try {
-            const res = await axios.get<DireccionAdministrativa[]>('/parametros/direcciones-administrativas', {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            console.log('Respuesta del backend:', res.data);
-            setDirecciones(res.data);
+            const res = await axios.get<UnidadOrganizacional[]>('/parametros/unidades-organizacionales');
+            setUnidades(res.data);
         } catch (error) {
-            console.error('Error al obtener direcciones administrativas:', error);
+            console.error('Error al obtener unidades organizacionales:', error);
         } finally {
             setCargando(false);
         }
     };
 
-    const eliminarDireccion = async (id: number) => {
-        if (!window.confirm('¿Estás seguro de eliminar esta dirección administrativa?')) return;
+    const eliminarUnidad = async (id: number) => {
+        if (!window.confirm('¿Estás seguro de eliminar esta unidad organizacional?')) return;
         try {
-            const token = localStorage.getItem('token');
-            await axios.delete(`/parametros/direcciones-administrativas/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            obtenerDirecciones();
+            await axios.delete(`/parametros/unidades-organizacionales/${id}`);
+            obtenerUnidades(); // recargar la lista
         } catch (error) {
-            console.error('Error al eliminar la dirección administrativa:', error);
+            console.error('Error al eliminar la unidad organizacional:', error);
         }
     };
 
     return (
         <div className="container mt-4">
-            <h4 className="mb-3">Direcciones Administrativas</h4>
+            <h4 className="mb-3">Unidades Organizacionales</h4>
 
             <button
                 className="btn btn-primary mb-3"
-                onClick={() => navigate('/parametros/direcciones-administrativas/nueva')}
+                onClick={() => navigate('/parametros/unidades-organizacionales/registrar')}
             >
-                <i className="bi bi-plus-lg me-1"></i> Nueva Dirección
+                <i className="bi bi-plus-lg me-1"></i> Nueva Unidad
             </button>
 
             <div className="table-responsive">
@@ -87,6 +70,7 @@ const DireccionesAdministrativas = () => {
                             <th>Nro.</th>
                             <th>Código</th>
                             <th>Descripción</th>
+                            <th>Área</th>
                             <th>Creado por</th>
                             <th>Fecha de Registro</th>
                             <th>Actualizado por</th>
@@ -97,23 +81,28 @@ const DireccionesAdministrativas = () => {
                     <tbody>
                         {cargando ? (
                             <tr>
-                                <td colSpan={8} className="text-center">Cargando datos...</td>
+                                <td colSpan={9} className="text-center">Cargando datos...</td>
                             </tr>
-                        ) : direcciones.length > 0 ? (
-                            direcciones.map((item, index) => (
+                        ) : unidades.length > 0 ? (
+                            unidades.map((item, index) => (
                                 <tr key={item.id}>
                                     <td>{index + 1}</td>
                                     <td>{item.codigo}</td>
                                     <td>{item.descripcion}</td>
+                                    <td>{item.area}</td>
                                     <td>
                                         {item.creado_por
-                                            ? `${item.creado_por.nombre} (${item.creado_por.rol})`
+                                            ? `${item.creado_por.nombre}${item.creado_por.rol ? ` (${item.creado_por.rol})` : ''}`
                                             : '—'}
                                     </td>
-                                    <td>{item.created_at ? new Date(item.created_at).toLocaleDateString('es-BO') : '—'}</td>
+                                    <td>
+                                        {item.created_at
+                                            ? new Date(item.created_at).toLocaleDateString('es-BO')
+                                            : '—'}
+                                    </td>
                                     <td>
                                         {item.actualizado_por
-                                            ? `${item.actualizado_por.nombre} (${item.actualizado_por.rol})`
+                                            ? `${item.actualizado_por.nombre}${item.actualizado_por.rol ? ` (${item.actualizado_por.rol})` : ''}`
                                             : '—'}
                                     </td>
                                     <td>
@@ -124,13 +113,13 @@ const DireccionesAdministrativas = () => {
                                     <td>
                                         <button
                                             className="btn btn-sm btn-warning me-2"
-                                            onClick={() => navigate(`/parametros/direcciones-administrativas/editar/${item.id}`)}
+                                            onClick={() => navigate(`/parametros/unidades-organizacionales/editar/${item.id}`)}
                                         >
                                             <i className="bi bi-pencil-square"></i>
                                         </button>
                                         <button
                                             className="btn btn-sm btn-danger"
-                                            onClick={() => eliminarDireccion(item.id)}
+                                            onClick={() => eliminarUnidad(item.id)}
                                         >
                                             <i className="bi bi-trash3"></i>
                                         </button>
@@ -139,7 +128,7 @@ const DireccionesAdministrativas = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={8} className="text-center">No hay registros.</td>
+                                <td colSpan={9} className="text-center">No hay registros.</td>
                             </tr>
                         )}
                     </tbody>
@@ -149,4 +138,4 @@ const DireccionesAdministrativas = () => {
     );
 };
 
-export default DireccionesAdministrativas;
+export default UnidadesOrganizacionales;

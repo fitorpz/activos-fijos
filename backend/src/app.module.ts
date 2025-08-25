@@ -6,6 +6,8 @@ import { AuthModule } from './auth/auth.module';
 import { EdificiosModule } from './edificios/edificios.module';
 import { EquipoOficinaModule } from './equipo-oficina/equipo-oficina.module';
 import { DireccionesAdministrativasModule } from './parametros/direcciones-administrativas/direcciones-administrativas.module';
+import { UnidadesOrganizacionalesModule } from './parametros/unidades-organizacionales/unidades-organizacionales.module';
+import { AmbientesModule } from './parametros/ambientes/ambientes.module';
 
 @Module({
   imports: [
@@ -44,6 +46,8 @@ import { DireccionesAdministrativasModule } from './parametros/direcciones-admin
     EdificiosModule,
     EquipoOficinaModule,
     DireccionesAdministrativasModule,
+    UnidadesOrganizacionalesModule,
+    AmbientesModule,
   ],
 })
 export class AppModule { }

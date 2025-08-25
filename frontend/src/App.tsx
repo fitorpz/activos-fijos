@@ -16,6 +16,12 @@ import Parametros from './pages/parametros/Parametros';
 import DireccionesAdministrativas from './pages/parametros/direcciones-administrativas/DireccionesAdministrativas';
 import RegistroDireccionAdministrativa from './pages/parametros/direcciones-administrativas/RegistroDireccionAdministrativa';
 import EditarDireccionAdministrativa from './pages/parametros/direcciones-administrativas/EditarDireccionAdministrativa';
+import UnidadesOrganizacionales from './pages/parametros/unidades-organizacionales/UnidadesOrganizacionales';
+import RegistroUnidadesOrganizacionales from './pages/parametros/unidades-organizacionales/RegistroUnidadesOrganizacionales';
+import EditarUnidadesOrganizacionales from './pages/parametros/unidades-organizacionales/EditarUnidadesOrganizacionales';
+import Ambientes from './pages/parametros/ambientes/ambientes';
+import RegistroAmbientes from './pages/parametros/ambientes/RegistroAmbientes';
+import EditarAmbientes from './pages/parametros/ambientes/EditarAmbientes';
 
 
 function App() {
@@ -49,6 +55,13 @@ function App() {
             <Route path="/parametros/direcciones-administrativas" element={<DireccionesAdministrativas />} />
             <Route path="/parametros/direcciones-administrativas/nueva" element={<RegistroDireccionAdministrativa />} />
             <Route path="/parametros/direcciones-administrativas/editar/:id" element={<EditarDireccionAdministrativa />} />
+            <Route path="/parametros/unidades-organizacionales" element={<UnidadesOrganizacionales />} />
+            <Route path="/parametros/unidades-organizacionales/registrar" element={<RegistroUnidadesOrganizacionales />} />
+            <Route path="/parametros/unidades-organizacionales/editar/:id" element={<EditarUnidadesOrganizacionales />} />
+            <Route path="/parametros/ambientes" element={<Ambientes />} />
+            <Route path="/parametros/ambientes/registrar" element={<RegistroAmbientes />} />
+            <Route path="/parametros/ambientes/editar/:id" element={<EditarAmbientes />} />
+
           </Route>
         )}
 
