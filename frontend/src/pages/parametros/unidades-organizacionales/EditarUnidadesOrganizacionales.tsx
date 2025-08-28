@@ -2,12 +2,20 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
 
+interface Area {
+    id: number;
+    descripcion: string;
+}
 interface UnidadOrganizacional {
     id: number;
     codigo: string;
     descripcion: string;
-    area: string;
+    area: {
+        id: number;
+        descripcion: string;
+    };
 }
+
 
 const EditarUnidadesOrganizacionales = () => {
     const { id } = useParams();
@@ -16,13 +24,15 @@ const EditarUnidadesOrganizacionales = () => {
     const [formData, setFormData] = useState({
         codigo: '',
         descripcion: '',
-        area: '',
+        area_id: '',
     });
 
+    const [areas, setAreas] = useState<Area[]>([]);
     const [cargando, setCargando] = useState(true);
 
     useEffect(() => {
         obtenerUnidad();
+        obtenerAreas();
     }, []);
 
     const obtenerUnidad = async () => {
@@ -31,7 +41,7 @@ const EditarUnidadesOrganizacionales = () => {
             setFormData({
                 codigo: res.data.codigo || '',
                 descripcion: res.data.descripcion || '',
-                area: res.data.area || '',
+                area_id: res.data.area?.id?.toString() || '',
             });
         } catch (error) {
             console.error('❌ Error al cargar la unidad organizacional:', error);
@@ -42,7 +52,17 @@ const EditarUnidadesOrganizacionales = () => {
         }
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const obtenerAreas = async () => {
+        try {
+            const res = await axios.get<Area[]>('/parametros/areas');
+            setAreas(res.data);
+
+        } catch (error) {
+            console.error('❌ Error al obtener áreas:', error);
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
@@ -53,7 +73,7 @@ const EditarUnidadesOrganizacionales = () => {
             const payload = {
                 codigo: formData.codigo.trim(),
                 descripcion: formData.descripcion.trim(),
-                area: formData.area.trim(),
+                area_id: parseInt(formData.area_id),
             };
 
             await axios.put(`/parametros/unidades-organizacionales/${id}`, payload);
@@ -99,16 +119,22 @@ const EditarUnidadesOrganizacionales = () => {
                         </div>
 
                         <div className="mb-3">
-                            <label htmlFor="area" className="form-label">Área</label>
-                            <input
-                                type="text"
-                                id="area"
-                                name="area"
-                                className="form-control"
-                                value={formData.area}
+                            <label htmlFor="area_id" className="form-label">Área</label>
+                            <select
+                                id="area_id"
+                                name="area_id"
+                                className="form-select"
+                                value={formData.area_id}
                                 onChange={handleChange}
                                 required
-                            />
+                            >
+                                <option value="">Seleccione un área</option>
+                                {areas.map((area) => (
+                                    <option key={area.id} value={area.id}>
+                                        {area.descripcion}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         <button type="submit" className="btn btn-primary">Guardar Cambios</button>

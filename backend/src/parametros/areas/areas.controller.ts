@@ -8,47 +8,52 @@ import {
   Delete,
   ParseIntPipe,
   UseGuards,
-  Req,
   Query,
-  Res,
+  Req,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { DireccionAdministrativa } from './entities/direcciones-administrativas.entity';
+import { Area } from './entities/areas.entity';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { CreateDireccionesAdministrativasDto } from './dto/create-direcciones-administrativa.dto';
-import { UpdateDireccionesAdministrativasDto } from './dto/update-direcciones-administrativa.dto';
-import { DireccionesAdministrativasService } from './direcciones-administrativas.service';
+import { CreateAreasDto } from './dto/create-areas.dto';
+import { UpdateAreasDto } from './dto/update-areas.dto';
+import { AreasService } from './areas.service';
 import type { RequestWithUser } from 'src/interfaces/request-with-user.interface';
 import type { Response } from 'express';
+import { Res } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+
+
 import { generarPDFDesdeHTML } from '../../pdf/generarPDF';
 
-@Controller('parametros/direcciones-administrativas')
+@Controller('parametros/areas')
 @UseGuards(JwtAuthGuard)
-export class DireccionesAdministrativasController {
+export class AreasController {
   constructor(
-    private readonly direccionesService: DireccionesAdministrativasService,
+    private readonly direccionesService: AreasService,
 
-    @InjectRepository(DireccionAdministrativa)
-    private readonly direccionRepository: Repository<DireccionAdministrativa>,
+    @InjectRepository(Area)
+    private readonly areaRepository: Repository<Area>,
   ) { }
 
   @Post()
   create(
-    @Body() dto: CreateDireccionesAdministrativasDto,
+    @Body() dto: CreateAreasDto,
     @Req() req: RequestWithUser,
   ) {
     const userId = req.user.id;
     return this.direccionesService.create(dto, userId);
   }
 
+  // areas.controller.ts
   @Get()
-  findAll(@Req() req: RequestWithUser): Promise<DireccionAdministrativa[]> {
-    const estado = req.query.estado as string;
+  findAll(@Req() req: RequestWithUser): Promise<Area[]> {
+    const estado = req.query.estado as string; // puede ser 'activos' | 'inactivos' | undefined
     return this.direccionesService.findAll(estado);
   }
+
+
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -58,7 +63,7 @@ export class DireccionesAdministrativasController {
   @Put(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateDireccionesAdministrativasDto,
+    @Body() dto: UpdateAreasDto,
     @Req() req: RequestWithUser,
   ) {
     const userId = req.user.id;
@@ -66,48 +71,61 @@ export class DireccionesAdministrativasController {
   }
 
   @Put(':id/cambiar-estado')
-  cambiarEstado(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: RequestWithUser,
-  ) {
-    const userId = req.user.id;
-    return this.direccionesService.cambiarEstado(id, userId);
+  cambiarEstado(@Param('id', ParseIntPipe) id: number) {
+    return this.direccionesService.cambiarEstado(id);
   }
 
 
 
+
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.direccionesService.remove(id);
+  }
+
+
+
+  // areas.controller.ts
   @Get('exportar/pdf')
   async exportarPDF(
     @Res() res: Response,
-    @Query('estado') estado: string,
+    @Query('estado') estado: string
   ) {
     try {
-      const direcciones = await this.direccionesService.findAll(estado);
+      // Obtener las áreas filtradas
+      const areas = await this.direccionesService.findAll(estado);
 
-      const filasHTML = direcciones.map((direccion, index) => `
+      // Generar filas HTML
+      const filasHTML = areas.map((area, index) => `
         <tr>
           <td>${index + 1}</td>
-          <td>${direccion.codigo}</td>
-          <td>${direccion.descripcion}</td>
+          <td>${area.codigo}</td>
+          <td>${area.descripcion}</td>
         </tr>
       `).join('');
 
-      const templatePath = path.join(process.cwd(), 'templates', 'pdf', 'parametros', 'direcciones-administrativas-pdf.html');
+
+      // Cargar archivo HTML base desde ruta relativa
+      const templatePath = path.join(process.cwd(), 'templates', 'pdf', 'parametros', 'areas-pdf.html');
 
       let html: string;
       try {
         html = fs.readFileSync(templatePath, 'utf-8');
       } catch (e) {
-        console.error('❌ No se encontró la plantilla:', templatePath);
+        console.error('❌ No se encontró el archivo de plantilla HTML en:', templatePath);
         throw new Error('Plantilla HTML no encontrada');
       }
 
-      html = html.replace('<!-- FILAS_DIRECCIONES -->', filasHTML);
 
+      // Insertar las filas en el marcador
+      html = html.replace('<!-- FILAS_AREAS -->', filasHTML);
+
+      // Generar PDF con helper
       const buffer = await generarPDFDesdeHTML(html);
 
+      // Enviar PDF como respuesta
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'inline; filename=direcciones-administrativas.pdf');
+      res.setHeader('Content-Disposition', 'inline; filename=areas.pdf');
       res.end(buffer);
     } catch (error) {
       console.error('❌ Error al generar el PDF:', error);

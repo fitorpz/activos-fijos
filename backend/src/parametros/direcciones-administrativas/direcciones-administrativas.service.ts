@@ -1,67 +1,97 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository } from 'typeorm';
 import { DireccionAdministrativa } from './entities/direcciones-administrativas.entity';
 import { CreateDireccionesAdministrativasDto } from './dto/create-direcciones-administrativa.dto';
 import { UpdateDireccionesAdministrativasDto } from './dto/update-direcciones-administrativa.dto';
+import { Usuario } from '../../usuarios/entities/usuario.entity';
 
 @Injectable()
 export class DireccionesAdministrativasService {
   constructor(
     @InjectRepository(DireccionAdministrativa)
-    private readonly direccionAdministrativaRepository: Repository<DireccionAdministrativa>,
+    private readonly direccionRepo: Repository<DireccionAdministrativa>,
+
+    @InjectRepository(Usuario)
+    private readonly usuarioRepo: Repository<Usuario>,
   ) { }
 
   async create(dto: CreateDireccionesAdministrativasDto, userId: number) {
-    const entidad = this.direccionAdministrativaRepository.create({
+    const usuario = await this.usuarioRepo.findOneBy({ id: userId });
+
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+    }
+
+    const nuevaDireccion = this.direccionRepo.create({
       ...dto,
-      creado_por: { id: userId } as any, // asocia el usuario creador
+      estado: dto.estado ?? 'ACTIVO',
+      creado_por: usuario,
     });
-    return this.direccionAdministrativaRepository.save(entidad);
+
+    return this.direccionRepo.save(nuevaDireccion);
   }
 
-  async findAll(): Promise<DireccionAdministrativa[]> {
-    return this.direccionAdministrativaRepository.find({
-      where: { deleted_at: IsNull() },
-      relations: ['creado_por', 'actualizado_por'],
-      order: { id: 'ASC' },
-    });
-  }
+  async findAll(estado?: string): Promise<DireccionAdministrativa[]> {
+    const query = this.direccionRepo.createQueryBuilder('direccion')
+      .leftJoinAndSelect('direccion.creado_por', 'creado_por')
+      .leftJoinAndSelect('direccion.actualizado_por', 'actualizado_por')
+      .orderBy('direccion.id', 'DESC');
 
-  async findOne(id: number) {
-    const registro = await this.direccionAdministrativaRepository.findOne({
-      where: { id, deleted_at: IsNull() },
-      relations: ['creado_por', 'actualizado_por'],
-    });
-
-    if (!registro) {
-      throw new NotFoundException('Dirección no encontrada');
+    if (estado && estado !== 'todos') {
+      query.andWhere('direccion.estado = :estado', { estado: estado.toUpperCase() });
     }
-    return registro;
+
+    return query.getMany();
   }
 
-  async update(
-    id: number,
-    dto: UpdateDireccionesAdministrativasDto,
-    userId: number,
-  ) {
-    const registro = await this.findOne(id);
+  async findOne(id: number): Promise<DireccionAdministrativa> {
+    const direccion = await this.direccionRepo.findOne({
+      where: { id },
+      relations: ['creado_por', 'actualizado_por'],
+    });
 
-    Object.assign(registro, dto);
-    registro.actualizado_por = { id: userId } as any;
-
-    return this.direccionAdministrativaRepository.save(registro);
-  }
-
-  async remove(id: number): Promise<{ message: string }> {
-    // Soft delete directo por id (no necesitas hacer el findOne antes)
-    const result = await this.direccionAdministrativaRepository.softDelete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException('Dirección no encontrada');
+    if (!direccion) {
+      throw new NotFoundException(`Dirección ${id} no encontrada`);
     }
-    return { message: 'Dirección eliminada correctamente' };
+
+    return direccion;
+  }
+
+  async update(id: number, dto: UpdateDireccionesAdministrativasDto, userId: number) {
+    const direccion = await this.findOne(id);
+    const usuario = await this.usuarioRepo.findOneBy({ id: userId });
+
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+    }
+
+    if (dto.codigo !== undefined) direccion.codigo = dto.codigo;
+    if (dto.descripcion !== undefined) direccion.descripcion = dto.descripcion;
+    if (dto.estado !== undefined) direccion.estado = dto.estado;
+
+    direccion.actualizado_por = usuario;
+
+    return this.direccionRepo.save(direccion);
+  }
+
+  async cambiarEstado(id: number, userId: number): Promise<{ nuevoEstado: string; message: string }> {
+    const direccion = await this.direccionRepo.findOne({ where: { id } });
+
+    if (!direccion) throw new NotFoundException('Dirección no encontrada');
+
+    const usuario = await this.usuarioRepo.findOneBy({ id: userId });
+    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+
+    direccion.estado = direccion.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
+    direccion.actualizado_por = usuario;
+
+    await this.direccionRepo.save(direccion);
+
+    return {
+      nuevoEstado: direccion.estado,
+      message: `Dirección actualizada a estado ${direccion.estado}`,
+    };
   }
 }
+

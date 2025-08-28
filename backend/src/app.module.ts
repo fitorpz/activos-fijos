@@ -8,6 +8,7 @@ import { EquipoOficinaModule } from './equipo-oficina/equipo-oficina.module';
 import { DireccionesAdministrativasModule } from './parametros/direcciones-administrativas/direcciones-administrativas.module';
 import { UnidadesOrganizacionalesModule } from './parametros/unidades-organizacionales/unidades-organizacionales.module';
 import { AmbientesModule } from './parametros/ambientes/ambientes.module';
+import { AreasModule } from './parametros/areas/areas.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { AmbientesModule } from './parametros/ambientes/ambientes.module';
     DireccionesAdministrativasModule,
     UnidadesOrganizacionalesModule,
     AmbientesModule,
+    AreasModule,
   ],
 })
 export class AppModule { }

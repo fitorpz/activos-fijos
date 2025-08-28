@@ -1,98 +1,123 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
+
+interface Area {
+    id: number;
+    descripcion: string;
+}
 
 const RegistroUnidadesOrganizacionales = () => {
     const [formData, setFormData] = useState({
         codigo: '',
         descripcion: '',
-        area: '',
+        area_id: '',
     });
 
-    const [cargando, setCargando] = useState(false);
+    const [areas, setAreas] = useState<Area[]>([]);
+    const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    useEffect(() => {
+        obtenerAreas();
+    }, []);
+
+    const obtenerAreas = async () => {
+        try {
+            const res = await axios.get<Area[]>('/parametros/areas'); // ✅ sin ?estado=activos
+            setAreas(res.data);
+        } catch (err) {
+            console.error('❌ Error al obtener áreas:', err);
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => ({
+            ...prev,
+            [name]: value,
+        }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setCargando(true);
+        setError('');
+
+        if (!formData.codigo || !formData.descripcion || !formData.area_id) {
+            setError('Todos los campos son obligatorios.');
+            return;
+        }
+
         try {
-            const payload = {
+            await axios.post('/parametros/unidades-organizacionales', {
                 codigo: formData.codigo.trim(),
                 descripcion: formData.descripcion.trim(),
-                area: formData.area.trim(),
-            };
-
-            await axios.post('/parametros/unidades-organizacionales', payload);
-            alert('✅ Unidad organizacional registrada con éxito.');
+                area_id: parseInt(formData.area_id),
+            });
             navigate('/parametros/unidades-organizacionales');
-        } catch (error: any) {
-            console.error('Error al registrar unidad organizacional:', error);
-            alert(error?.response?.data?.message || '❌ Error al registrar la unidad.');
-        } finally {
-            setCargando(false);
+        } catch (err: any) {
+            console.error('❌ Error al registrar unidad organizacional:', err);
+            setError('Error al registrar. Intenta nuevamente.');
         }
     };
 
     return (
         <div className="container mt-4">
-            <div className="form-container">
-                <h4 className="mb-4">Nueva Unidad Organizacional</h4>
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-3">
-                        <label htmlFor="codigo" className="form-label">Código</label>
-                        <input
-                            type="text"
-                            id="codigo"
-                            name="codigo"
-                            className="form-control"
-                            value={formData.codigo}
-                            onChange={handleChange}
-                            required
-                        />
-                    </div>
+            <h4 className="mb-3">Registrar Unidad Organizacional</h4>
 
-                    <div className="mb-3">
-                        <label htmlFor="descripcion" className="form-label">Descripción</label>
-                        <textarea
-                            id="descripcion"
-                            name="descripcion"
-                            className="form-control"
-                            value={formData.descripcion}
-                            onChange={handleChange}
-                            required
-                        />
-                    </div>
+            {error && <div className="alert alert-danger">{error}</div>}
 
-                    <div className="mb-3">
-                        <label htmlFor="area" className="form-label">Área</label>
-                        <input
-                            type="text"
-                            id="area"
-                            name="area"
-                            className="form-control"
-                            value={formData.area}
-                            onChange={handleChange}
-                            required
-                        />
-                    </div>
+            <form onSubmit={handleSubmit} className="card p-4 shadow-sm">
+                <div className="mb-3">
+                    <label htmlFor="codigo" className="form-label">Código</label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        id="codigo"
+                        name="codigo"
+                        value={formData.codigo}
+                        onChange={handleChange}
+                        required
+                    />
+                </div>
 
-                    <button type="submit" className="btn btn-primary" disabled={cargando}>
-                        {cargando ? 'Guardando...' : 'Registrar'}
-                    </button>
-                    <button
-                        type="button"
-                        className="btn btn-secondary ms-2"
-                        onClick={() => navigate('/parametros/unidades-organizacionales')}
+                <div className="mb-3">
+                    <label htmlFor="descripcion" className="form-label">Descripción</label>
+                    <textarea
+                        id="descripcion"
+                        name="descripcion"
+                        className="form-control"
+                        value={formData.descripcion}
+                        onChange={handleChange}
+                        required
+                    />
+                </div>
+
+                <div className="mb-3">
+                    <label htmlFor="area_id" className="form-label">Área</label>
+                    <select
+                        id="area_id"
+                        name="area_id"
+                        className="form-select"
+                        value={formData.area_id}
+                        onChange={handleChange}
+                        required
                     >
-                        Cancelar
+                        <option value="">Seleccione un área</option>
+                        {areas.map(area => (
+                            <option key={area.id} value={area.id}>
+                                {area.descripcion}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="d-flex justify-content-end">
+                    <button type="submit" className="btn btn-primary">
+                        <i className="bi bi-save me-2"></i>Guardar
                     </button>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     );
 };

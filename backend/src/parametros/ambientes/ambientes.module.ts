@@ -1,13 +1,17 @@
+// src/parametros/ambientes/ambientes.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AmbientesService } from './ambientes.service';
 import { AmbientesController } from './ambientes.controller';
+import { AmbientesService } from './ambientes.service';
 import { Ambiente } from './entities/ambiente.entity';
 import { UnidadOrganizacional } from '../unidades-organizacionales/entities/unidad-organizacional.entity';
+import { Usuario } from 'src/usuarios/entities/usuario.entity';
+import { UsuariosModule } from 'src/usuarios/usuarios.module'; // ✅ Asegúrate de importar esto
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Ambiente, UnidadOrganizacional]),
+    TypeOrmModule.forFeature([Ambiente, UnidadOrganizacional, Usuario]),
+    UsuariosModule, // ✅ Agregado aquí
   ],
   controllers: [AmbientesController],
   providers: [AmbientesService],

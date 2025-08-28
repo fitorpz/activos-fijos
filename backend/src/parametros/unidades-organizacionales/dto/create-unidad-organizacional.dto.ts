@@ -1,18 +1,21 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsOptional, IsNumber } from 'class-validator';
 
 export class CreateUnidadOrganizacionalDto {
-    @IsNotEmpty()
     @IsString()
+    @IsNotEmpty()
     codigo: string;
 
-    @IsNotEmpty()
     @IsString()
+    @IsNotEmpty()
     descripcion: string;
 
-    @IsNotEmpty()
-    @IsString()
-    area: string;
+    @IsEnum(['ACTIVO', 'INACTIVO'])
+    @IsOptional()
+    estado?: 'ACTIVO' | 'INACTIVO';
 
-    @IsNotEmpty()
+    @IsNumber()
+    area_id: number;
+
+    @IsNumber()
     creado_por_id: number;
 }

@@ -1,3 +1,5 @@
+// src/parametros/unidades-organizacionales/entities/unidad-organizacional.entity.ts
+
 import {
     Entity,
     Column,
@@ -9,6 +11,7 @@ import {
     JoinColumn,
 } from 'typeorm';
 import { Usuario } from 'src/usuarios/entities/usuario.entity';
+import { Area } from 'src/parametros/areas/entities/areas.entity';
 
 @Entity('unidades_organizacionales')
 export class UnidadOrganizacional {
@@ -21,8 +24,17 @@ export class UnidadOrganizacional {
     @Column()
     descripcion: string;
 
-    @Column()
-    area: string;
+    @Column({ type: 'enum', enum: ['ACTIVO', 'INACTIVO'], default: 'ACTIVO' })
+    estado: 'ACTIVO' | 'INACTIVO';
+
+    @ManyToOne(() => Area, { eager: true })
+    @JoinColumn({ name: 'area_id' })
+    area: Area;
+
+    // unidad-organizacional.entity.ts
+    @Column({ name: 'area_id', nullable: true })
+    area_id: number;
+
 
     @CreateDateColumn({ type: 'timestamp' })
     created_at: Date;
@@ -37,7 +49,13 @@ export class UnidadOrganizacional {
     @JoinColumn({ name: 'creado_por_id' })
     creado_por: Usuario;
 
+    @Column({ name: 'creado_por_id' })
+    creado_por_id: number;
+
     @ManyToOne(() => Usuario, { eager: true, nullable: true })
     @JoinColumn({ name: 'actualizado_por_id' })
     actualizado_por?: Usuario;
+
+    @Column({ name: 'actualizado_por_id', nullable: true })
+    actualizado_por_id?: number;
 }

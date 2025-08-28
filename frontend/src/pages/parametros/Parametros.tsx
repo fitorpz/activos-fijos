@@ -17,6 +17,7 @@ const parametros = [
         icono: 'bi-diagram-3',
         color: 'info',
         items: [
+            { label: 'Areas', path: '/parametros/areas' },
             { label: 'Direcciones Administrativas', path: '/parametros/direcciones-administrativas' },
             { label: 'Unidades Organizacionales', path: '/parametros/unidades-organizacionales' },
             { label: 'Ambientes', path: '/parametros/ambientes' },

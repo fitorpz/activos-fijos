@@ -9,8 +9,8 @@ import {
 } from 'typeorm';
 import { Usuario } from 'src/usuarios/entities/usuario.entity';
 
-@Entity('direcciones_administrativas')
-export class DireccionAdministrativa {
+@Entity('areas')
+export class Area {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -42,4 +42,7 @@ export class DireccionAdministrativa {
 
   @Column({ name: 'actualizado_por_id', nullable: true })
   actualizado_por_id?: number;
+
+  //@Column({ type: 'timestamp', nullable: true })
+  //deleted_at: Date;
 }

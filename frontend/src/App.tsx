@@ -22,6 +22,9 @@ import EditarUnidadesOrganizacionales from './pages/parametros/unidades-organiza
 import Ambientes from './pages/parametros/ambientes/ambientes';
 import RegistroAmbientes from './pages/parametros/ambientes/RegistroAmbientes';
 import EditarAmbientes from './pages/parametros/ambientes/EditarAmbientes';
+import Areas from './pages/parametros/areas/Areas';
+import RegistroAreas from './pages/parametros/areas/RegistroAreas';
+import EditarAreas from './pages/parametros/areas/EditarAreas';
 
 
 function App() {
@@ -61,6 +64,9 @@ function App() {
             <Route path="/parametros/ambientes" element={<Ambientes />} />
             <Route path="/parametros/ambientes/registrar" element={<RegistroAmbientes />} />
             <Route path="/parametros/ambientes/editar/:id" element={<EditarAmbientes />} />
+            <Route path="/parametros/areas" element={<Areas />} />
+            <Route path="/parametros/areas/registrar" element={<RegistroAreas />} />
+            <Route path="/parametros/areas/editar/:id" element={<EditarAreas />} />
 
           </Route>
         )}
