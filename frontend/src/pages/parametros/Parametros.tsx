@@ -8,7 +8,7 @@ const parametros = [
         icono: 'bi-calculator',
         color: 'primary',
         items: [
-            { label: 'Grupo Contable', path: '/parametros/grupo-contable' },
+            { label: 'Grupo Contable', path: '/parametros/grupos-contables' },
             { label: 'Auxiliares (Subgrupos)', path: '/parametros/auxiliares' },
         ],
     },

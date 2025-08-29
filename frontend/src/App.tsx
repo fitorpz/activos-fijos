@@ -25,7 +25,12 @@ import EditarAmbientes from './pages/parametros/ambientes/EditarAmbientes';
 import Areas from './pages/parametros/areas/Areas';
 import RegistroAreas from './pages/parametros/areas/RegistroAreas';
 import EditarAreas from './pages/parametros/areas/EditarAreas';
-
+import GruposContables from './pages/parametros/grupos-contables/GruposContables';
+import RegistroGrupoContable from './pages/parametros/grupos-contables/RegistroGrupoContable';
+import EditarGrupoContable from './pages/parametros/grupos-contables/EditarGrupoContable';
+import Auxiliares from './pages/parametros/auxiliares/Auxiliares';
+import RegistroAuxiliar from './pages/parametros/auxiliares/RegistroAuxiliar';
+import EditarAuxiliar from './pages/parametros/auxiliares/EditarAuxiliar';
 
 function App() {
   // ✅ Nueva validación basada en existencia de token
@@ -67,7 +72,12 @@ function App() {
             <Route path="/parametros/areas" element={<Areas />} />
             <Route path="/parametros/areas/registrar" element={<RegistroAreas />} />
             <Route path="/parametros/areas/editar/:id" element={<EditarAreas />} />
-
+            <Route path="/parametros/grupos-contables" element={<GruposContables />} />
+            <Route path="/parametros/grupos-contables/registrar" element={<RegistroGrupoContable />} />
+            <Route path="/parametros/grupos-contables/editar/:id" element={<EditarGrupoContable />} />
+            <Route path="/parametros/auxiliares" element={<Auxiliares />} />
+            <Route path="/parametros/auxiliares/registrar" element={<RegistroAuxiliar />} />
+            <Route path="/parametros/auxiliares/editar/:id" element={<EditarAuxiliar />} />
           </Route>
         )}
 

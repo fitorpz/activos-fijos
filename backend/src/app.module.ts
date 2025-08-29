@@ -9,6 +9,8 @@ import { DireccionesAdministrativasModule } from './parametros/direcciones-admin
 import { UnidadesOrganizacionalesModule } from './parametros/unidades-organizacionales/unidades-organizacionales.module';
 import { AmbientesModule } from './parametros/ambientes/ambientes.module';
 import { AreasModule } from './parametros/areas/areas.module';
+import { GruposContablesModule } from './parametros/grupos-contables/grupos-contables.module';
+import { AuxiliaresModule } from './parametros/auxiliares/auxiliares.module';
 
 @Module({
   imports: [
@@ -50,6 +52,8 @@ import { AreasModule } from './parametros/areas/areas.module';
     UnidadesOrganizacionalesModule,
     AmbientesModule,
     AreasModule,
+    GruposContablesModule,
+    AuxiliaresModule,
   ],
 })
 export class AppModule { }

@@ -1,0 +1,115 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Auxiliar } from './entities/auxiliares.entity';
+import { CreateAuxiliaresDto } from './dto/create-auxiliares.dto';
+import { UpdateAuxiliaresDto } from './dto/update-auxiliares.dto';
+import { Usuario } from '../../usuarios/entities/usuario.entity';
+
+@Injectable()
+export class AuxiliaresService {
+  constructor(
+    @InjectRepository(Auxiliar)
+    private readonly auxiliarRepo: Repository<Auxiliar>,
+
+    @InjectRepository(Usuario)
+    private readonly usuarioRepo: Repository<Usuario>,
+  ) { }
+
+  // Crear auxiliar
+  async create(
+    dto: CreateAuxiliaresDto,
+    userId: number,
+  ): Promise<Auxiliar> {
+    const usuario = await this.usuarioRepo.findOneBy({ id: userId });
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+    }
+
+    const nuevoAuxiliar = this.auxiliarRepo.create({
+      ...dto,
+      estado: dto.estado ?? 'ACTIVO',
+      creado_por: usuario,
+    });
+
+    return this.auxiliarRepo.save(nuevoAuxiliar);
+  }
+
+  // Obtener todos los auxiliares (con filtro por estado)
+  async findAll(estado?: string): Promise<Auxiliar[]> {
+    const query = this.auxiliarRepo.createQueryBuilder('auxiliar')
+      .leftJoinAndSelect('auxiliar.creado_por', 'creado_por')
+      .leftJoinAndSelect('auxiliar.actualizado_por', 'actualizado_por')
+      .orderBy('auxiliar.id', 'DESC');
+
+    if (estado && estado !== 'todos') {
+      query.andWhere('auxiliar.estado = :estado', { estado: estado.toUpperCase() });
+    }
+
+    return query.getMany();
+  }
+
+  // Obtener auxiliar por ID
+  async findOne(id: number): Promise<Auxiliar> {
+    const auxiliar = await this.auxiliarRepo.findOne({
+      where: { id },
+      relations: ['creado_por', 'actualizado_por'],
+    });
+
+    if (!auxiliar) {
+      throw new NotFoundException(`Auxiliar ${id} no encontrado`);
+    }
+
+    return auxiliar;
+  }
+
+  // Actualizar auxiliar
+  async update(
+    id: number,
+    dto: UpdateAuxiliaresDto,
+    userId: number,
+  ): Promise<Auxiliar> {
+    const auxiliar = await this.findOne(id);
+    const usuario = await this.usuarioRepo.findOneBy({ id: userId });
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+    }
+
+    if (dto.codigo !== undefined) auxiliar.codigo = dto.codigo;
+    if (dto.descripcion !== undefined) auxiliar.descripcion = dto.descripcion;
+    if (dto.estado !== undefined) auxiliar.estado = dto.estado;
+    if (dto.codigo_grupo !== undefined) auxiliar.codigo_grupo = dto.codigo_grupo;
+
+    auxiliar.actualizado_por = usuario;
+
+    return this.auxiliarRepo.save(auxiliar);
+  }
+
+  // Cambiar estado ACTIVO/INACTIVO
+  async cambiarEstado(id: number, userId: number): Promise<{ nuevoEstado: string; message: string }> {
+    const auxiliar = await this.findOne(id);
+    const usuario = await this.usuarioRepo.findOneBy({ id: userId });
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+    }
+
+    auxiliar.estado = auxiliar.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
+    auxiliar.actualizado_por = usuario;
+
+    await this.auxiliarRepo.save(auxiliar);
+
+    return {
+      nuevoEstado: auxiliar.estado,
+      message: `Auxiliar actualizado a estado ${auxiliar.estado}`,
+    };
+  }
+
+  // Eliminar (lógica soft mediante estado)
+  async remove(id: number): Promise<{ message: string }> {
+    const auxiliar = await this.findOne(id);
+    auxiliar.estado = 'INACTIVO';
+    await this.auxiliarRepo.save(auxiliar);
+
+    return { message: 'Auxiliar marcado como INACTIVO' };
+  }
+}
