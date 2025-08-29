@@ -42,6 +42,7 @@ export class AreasService {
   async findAll(estado?: string): Promise<Area[]> {
     const query = this.direccionRepo.createQueryBuilder('area')
       .leftJoinAndSelect('area.creado_por', 'creado_por')
+      .leftJoinAndSelect('area.actualizado_por', 'actualizado_por') // 👈 FALTA ESTO
       .orderBy('area.id', 'DESC');
 
     if (estado && estado !== 'todos') {
@@ -50,6 +51,7 @@ export class AreasService {
 
     return query.getMany();
   }
+
 
 
   // Obtener una sola dirección por ID
@@ -109,14 +111,21 @@ export class AreasService {
 
     return { message: 'Área marcada como INACTIVA' };
   }
-  async cambiarEstado(id: number): Promise<{ nuevoEstado: string; message: string }> {
+  async cambiarEstado(id: number, userId: number): Promise<{ nuevoEstado: string; message: string }> {
     const area = await this.direccionRepo.findOne({ where: { id } });
 
     if (!area) {
       throw new NotFoundException('Área no encontrada');
     }
 
+    const usuario = await this.usuarioRepo.findOneBy({ id: userId });
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+    }
+
     area.estado = area.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
+    area.actualizado_por = usuario;
+
     await this.direccionRepo.save(area);
 
     return {
@@ -124,6 +133,4 @@ export class AreasService {
       message: `Área actualizada a estado ${area.estado}`,
     };
   }
-
-
 }

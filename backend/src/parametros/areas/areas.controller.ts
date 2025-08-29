@@ -71,9 +71,14 @@ export class AreasController {
   }
 
   @Put(':id/cambiar-estado')
-  cambiarEstado(@Param('id', ParseIntPipe) id: number) {
-    return this.direccionesService.cambiarEstado(id);
+  cambiarEstado(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: RequestWithUser
+  ) {
+    const userId = req.user.id;
+    return this.direccionesService.cambiarEstado(id, userId);
   }
+
 
 
 

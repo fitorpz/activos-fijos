@@ -13,7 +13,7 @@ export interface Area {
     id: number;
     codigo: string;
     descripcion: string;
-    estado: string;
+    estado: 'ACTIVO' | 'INACTIVO';
     creado_por: Usuario;
     created_at: string;
     actualizado_por?: Usuario | null;
@@ -23,20 +23,30 @@ export interface Area {
 const Areas = () => {
     const [areas, setAreas] = useState<Area[]>([]);
     const [cargando, setCargando] = useState(true);
-    const [estadoFiltro, setEstadoFiltro] = useState<string>('activos'); // ✅ Filtro de estado
+    const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
     const navigate = useNavigate();
 
     useEffect(() => {
-        obtenerAreas(estadoFiltro);
+        obtenerAreas();
     }, [estadoFiltro]);
 
-    const obtenerAreas = async (estado: string = '') => {
-        setCargando(true);
+    const obtenerAreas = async () => {
+        const token = localStorage.getItem('token');
         try {
-            const res = await axios.get<Area[]>(`/parametros/areas`, {
-                params: estado
-                    ? { estado: estado === 'activos' ? 'ACTIVO' : estado === 'inactivos' ? 'INACTIVO' : 'todos' }
+            const res = await axios.get<Area[]>('/parametros/areas', {
+                params: estadoFiltro
+                    ? {
+                        estado:
+                            estadoFiltro === 'activos'
+                                ? 'ACTIVO'
+                                : estadoFiltro === 'inactivos'
+                                    ? 'INACTIVO'
+                                    : 'todos',
+                    }
                     : {},
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
             });
             setAreas(res.data);
         } catch (error) {
@@ -46,22 +56,19 @@ const Areas = () => {
         }
     };
 
-    const cambiarEstado = async (id: number, estadoActual: string) => {
-        const nuevoEstado = estadoActual === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
-
-        if (!window.confirm(`¿Deseas cambiar el estado a ${nuevoEstado}?`)) return;
-
+    const cambiarEstado = async (id: number) => {
+        if (!window.confirm('¿Estás seguro de cambiar el estado de esta área?')) return;
         try {
-            await axios.put(`/parametros/areas/${id}/cambiar-estado`);
-            obtenerAreas(estadoFiltro);
+            const token = localStorage.getItem('token');
+            await axios.put(`/parametros/areas/${id}/cambiar-estado`, null, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            obtenerAreas();
         } catch (error) {
             console.error('Error al cambiar el estado del área:', error);
         }
-    };
-
-
-    const handleFiltro = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        setEstadoFiltro(event.target.value);
     };
 
     const exportarPDF = async () => {
@@ -73,21 +80,23 @@ const Areas = () => {
                     ? 'INACTIVO'
                     : 'todos';
 
+        try {
+            const response = await axios.get(
+                `/parametros/areas/exportar/pdf?estado=${estadoSeleccionado}`,
+                {
+                    responseType: 'blob',
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
 
-        const response = await axios.get(
-            `/parametros/areas/exportar/pdf?estado=${estadoSeleccionado}`,
-
-            {
-                responseType: 'blob',
-                headers: { Authorization: `Bearer ${token}` },
-            }
-        );
-
-
-        const url = window.URL.createObjectURL(new Blob([response.data as Blob], { type: 'application/pdf' }));
-        window.open(url, '_blank');
+            const blob = new Blob([response.data as Blob], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (error) {
+            console.error('❌ Error al exportar PDF:', error);
+            alert('Ocurrió un error al exportar el PDF.');
+        }
     };
-
 
     return (
         <div className="container mt-4">
@@ -112,13 +121,12 @@ const Areas = () => {
                     <select
                         id="filtro-estado"
                         value={estadoFiltro}
-                        onChange={handleFiltro}
+                        onChange={(e) => setEstadoFiltro(e.target.value)}
                         className="form-select"
                     >
                         <option value="todos">Todos</option>
                         <option value="activos">Solo Activos</option>
                         <option value="inactivos">Solo Inactivos</option>
-                        
                     </select>
                 </div>
             </div>
@@ -161,7 +169,11 @@ const Areas = () => {
                                             ? `${area.actualizado_por.nombre}${area.actualizado_por.rol ? ` (${area.actualizado_por.rol})` : ''}`
                                             : '—'}
                                     </td>
-                                    <td>{area.updated_at ? new Date(area.updated_at).toLocaleDateString('es-BO') : '—'}</td>
+                                    <td>
+                                        {area.updated_at
+                                            ? new Date(area.updated_at).toLocaleDateString('es-BO')
+                                            : '—'}
+                                    </td>
                                     <td>
                                         <button
                                             className="btn btn-sm btn-warning me-2"
@@ -170,16 +182,12 @@ const Areas = () => {
                                             <i className="bi bi-pencil-square"></i>
                                         </button>
                                         <button
-                                            className={`btn btn-sm ${area.estado === 'ACTIVO' ? 'btn-danger' : 'btn-success'}`}
-                                            onClick={() => cambiarEstado(area.id, area.estado)}
+                                            className={`btn btn-sm ${area.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
+                                            title={area.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
+                                            onClick={() => cambiarEstado(area.id)}
                                         >
-                                            {area.estado === 'ACTIVO' ? (
-                                                <i className="bi bi-x-circle"></i>
-                                            ) : (
-                                                <i className="bi bi-check-circle"></i>
-                                            )}
+                                            <i className="bi bi-arrow-repeat"></i>
                                         </button>
-
                                     </td>
                                 </tr>
                             ))
