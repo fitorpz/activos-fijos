@@ -3,10 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
 
 interface DireccionAdministrativa {
-  id: number;
-  codigo: string;
-  descripcion: string;
-  // puedes incluir otros campos si necesitas, como created_at, etc.
+    id: number;
+    codigo: string;
+    descripcion: string;
+    estado: 'ACTIVO' | 'INACTIVO';
 }
 
 const EditarDireccionAdministrativa = () => {
@@ -16,6 +16,7 @@ const EditarDireccionAdministrativa = () => {
     const [formData, setFormData] = useState({
         codigo: '',
         descripcion: '',
+        estado: 'ACTIVO',
     });
 
     const [cargando, setCargando] = useState(true);
@@ -30,6 +31,7 @@ const EditarDireccionAdministrativa = () => {
             setFormData({
                 codigo: res.data.codigo || '',
                 descripcion: res.data.descripcion || '',
+                estado: res.data.estado || 'ACTIVO', // <--- nuevo
             });
         } catch (error) {
             console.error('❌ Error al cargar la dirección:', error);
@@ -39,6 +41,7 @@ const EditarDireccionAdministrativa = () => {
             setCargando(false);
         }
     };
+
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -52,6 +55,7 @@ const EditarDireccionAdministrativa = () => {
             const payload = {
                 codigo: formData.codigo.trim(),
                 descripcion: formData.descripcion.trim(),
+                estado: formData.estado,
             };
 
             await axios.put(`/parametros/direcciones-administrativas/${id}`, payload);
@@ -95,6 +99,21 @@ const EditarDireccionAdministrativa = () => {
                                 required
                             />
                         </div>
+                        <div className="mb-3">
+                            <label htmlFor="estado" className="form-label">Estado</label>
+                            <select
+                                id="estado"
+                                name="estado"
+                                className="form-select"
+                                value={formData.estado}
+                                onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
+                                required
+                            >
+                                <option value="ACTIVO">ACTIVO</option>
+                                <option value="INACTIVO">INACTIVO</option>
+                            </select>
+                        </div>
+
 
                         <button type="submit" className="btn btn-primary">Guardar Cambios</button>
                         <button

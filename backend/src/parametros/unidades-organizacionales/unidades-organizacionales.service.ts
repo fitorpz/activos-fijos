@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
+import { Area } from '../areas/entities/areas.entity';
 import { UnidadOrganizacional } from './entities/unidad-organizacional.entity';
 import { CreateUnidadOrganizacionalDto } from './dto/create-unidad-organizacional.dto';
 import { UpdateUnidadOrganizacionalDto } from './dto/update-unidad-organizacional.dto';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
+import { Like } from 'typeorm';
 
 @Injectable()
 export class UnidadesOrganizacionalesService {
@@ -14,6 +16,9 @@ export class UnidadesOrganizacionalesService {
 
     @InjectRepository(Usuario)
     private readonly usuarioRepo: Repository<Usuario>,
+
+    @InjectRepository(Area)
+    private readonly areaRepo: Repository<Area>
   ) { }
 
   async create(dto: CreateUnidadOrganizacionalDto): Promise<UnidadOrganizacional> {
@@ -104,4 +109,21 @@ export class UnidadesOrganizacionalesService {
   async restaurar(id: number): Promise<void> {
     await this.unidadRepo.restore(id);
   }
+
+  async contarPorAreaId(areaId: number): Promise<number> {
+    return this.unidadRepo.count({
+      where: { area: { id: areaId } },
+    });
+  }
+  async contarPorCodigoArea(codigoArea: string): Promise<number> {
+    return this.unidadRepo.count({
+      where: {
+        codigo: Like(`${codigoArea}.%`),
+      },
+    });
+  }
+
+
+
+
 }

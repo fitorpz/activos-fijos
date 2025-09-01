@@ -6,12 +6,16 @@ const RegistroDireccionAdministrativa = () => {
     const [formData, setFormData] = useState({
         codigo: '',
         descripcion: '',
+        estado: 'ACTIVO',
     });
 
     const [cargando, setCargando] = useState(false);
     const navigate = useNavigate();
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    ) => {
+
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
@@ -23,6 +27,7 @@ const RegistroDireccionAdministrativa = () => {
             const payload = {
                 codigo: formData.codigo.trim(),
                 descripcion: formData.descripcion.trim(),
+                estado: formData.estado,
             };
 
             await axios.post('/parametros/direcciones-administrativas', payload);
@@ -65,6 +70,21 @@ const RegistroDireccionAdministrativa = () => {
                             required
                         />
                     </div>
+                    <div className="mb-3">
+                        <label htmlFor="estado" className="form-label">Estado</label>
+                        <select
+                            id="estado"
+                            name="estado"
+                            className="form-select"
+                            value={formData.estado}
+                            onChange={handleChange}
+                            required
+                        >
+                            <option value="ACTIVO">ACTIVO</option>
+                            <option value="INACTIVO">INACTIVO</option>
+                        </select>
+                    </div>
+
 
                     <button type="submit" className="btn btn-primary" disabled={cargando}>
                         {cargando ? 'Guardando...' : 'Registrar'}

@@ -12,13 +12,20 @@ import {
   Req,
   Query,
   Res,
+  NotFoundException,
+  BadRequestException
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
 import { UnidadesOrganizacionalesService } from './unidades-organizacionales.service';
 import { CreateUnidadOrganizacionalDto } from './dto/create-unidad-organizacional.dto';
 import { UpdateUnidadOrganizacionalDto } from './dto/update-unidad-organizacional.dto';
+import { UnidadOrganizacional } from './entities/unidad-organizacional.entity';
+import { Area } from '../areas/entities/areas.entity';
+
 import { AuthGuard } from '@nestjs/passport';
 import type { RequestWithUser } from 'src/interfaces/request-with-user.interface';
-import { UnidadOrganizacional } from './entities/unidad-organizacional.entity';
 
 import type { Response } from 'express';
 import * as fs from 'fs';
@@ -30,6 +37,9 @@ import { generarPDFDesdeHTML } from '../../pdf/generarPDF';
 export class UnidadesOrganizacionalesController {
   constructor(
     private readonly unidadesService: UnidadesOrganizacionalesService,
+
+    @InjectRepository(Area)
+    private readonly areasRepo: Repository<Area>,
   ) { }
 
   @Post()
@@ -45,11 +55,22 @@ export class UnidadesOrganizacionalesController {
   findAll(@Query('estado') estado: string) {
     return this.unidadesService.findAll(estado);
   }
+  
+  @Get('contar')
+  async contarPorCodigoArea(@Query('codigo_area') codigoArea: string): Promise<{ total: number }> {
+    if (!codigoArea) {
+      throw new BadRequestException('El parámetro codigo_area es requerido');
+    }
+
+    const total = await this.unidadesService.contarPorCodigoArea(codigoArea);
+    return { total };
+  }
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.unidadesService.findOne(id);
   }
+
 
   @Put(':id')
   update(
@@ -72,7 +93,7 @@ export class UnidadesOrganizacionalesController {
   }
 
   @Put(':id/cambiar-estado')
-  async cambiarEstadoUnidad(
+  cambiarEstadoUnidad(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: RequestWithUser,
   ) {
@@ -88,13 +109,13 @@ export class UnidadesOrganizacionalesController {
       const unidades = await this.unidadesService.findAll(estado);
 
       const filasHTML = unidades.map((unidad, index) => `
-      <tr>
-        <td>${index + 1}</td>
-        <td>${unidad.area?.codigo || '—'}</td>
-        <td>${unidad.codigo}</td>
-        <td>${unidad.descripcion}</td>
-      </tr>
-    `).join('');
+        <tr>
+          <td>${index + 1}</td>
+          <td>${unidad.area?.codigo || '—'}</td>
+          <td>${unidad.codigo}</td>
+          <td>${unidad.descripcion}</td>
+        </tr>
+      `).join('');
 
       const templatePath = path.join(
         process.cwd(),
@@ -124,5 +145,4 @@ export class UnidadesOrganizacionalesController {
       return res.status(500).json({ message: 'Error al exportar PDF' });
     }
   }
-
 }

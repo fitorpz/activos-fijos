@@ -14,6 +14,7 @@ const EditarAreas = () => {
     const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
+        codigo: '',
         descripcion: '',
         estado: 'ACTIVO',
     });
@@ -28,6 +29,7 @@ const EditarAreas = () => {
         try {
             const res = await axios.get<Area>(`/parametros/areas/${id}`);
             setFormData({
+                codigo: res.data.codigo || '',
                 descripcion: res.data.descripcion || '',
                 estado: res.data.estado || 'ACTIVO',
             });
@@ -50,6 +52,7 @@ const EditarAreas = () => {
 
         try {
             const payload = {
+                codigo: formData.codigo.trim(),
                 descripcion: formData.descripcion.trim(),
                 estado: formData.estado,
             };
@@ -71,6 +74,19 @@ const EditarAreas = () => {
                     <p>Cargando datos...</p>
                 ) : (
                     <form onSubmit={handleSubmit}>
+                        <div className="mb-3">
+                            <label htmlFor="codigo" className="form-label">Código</label>
+                            <input
+                                id="codigo"
+                                name="codigo"
+                                type="text"
+                                className="form-control"
+                                value={formData.codigo}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+
                         <div className="mb-3">
                             <label htmlFor="descripcion" className="form-label">Descripción</label>
                             <textarea

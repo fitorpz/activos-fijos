@@ -106,7 +106,7 @@ const Areas = () => {
                     <p className="text-muted small">Gestión de registros por área</p>
                 </div>
 
-                <div className="d-flex flex-wrap gap-2">
+                <div className="d-flex flex-wrap align-items-center gap-2">
                     <button
                         className="btn btn-primary"
                         onClick={() => navigate('/parametros/areas/registrar')}
@@ -114,20 +114,29 @@ const Areas = () => {
                         <i className="bi bi-plus-lg me-1"></i> Nueva Área
                     </button>
 
-                    <button className="btn btn-outline-success ms-2" onClick={exportarPDF}>
+                    <button className="btn btn-outline-success" onClick={exportarPDF}>
                         <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
                     </button>
 
-                    <select
-                        id="filtro-estado"
-                        value={estadoFiltro}
-                        onChange={(e) => setEstadoFiltro(e.target.value)}
-                        className="form-select"
+                    <button
+                        className="btn btn-outline-secondary"
+                        onClick={() => navigate('/parametros')}
                     >
-                        <option value="todos">Todos</option>
-                        <option value="activos">Solo Activos</option>
-                        <option value="inactivos">Solo Inactivos</option>
-                    </select>
+                        <i className="bi bi-arrow-left me-1"></i> Volver a Parámetros
+                    </button>
+
+                    <div style={{ minWidth: '160px' }}>
+                        <select
+                            id="filtro-estado"
+                            value={estadoFiltro}
+                            onChange={(e) => setEstadoFiltro(e.target.value)}
+                            className="form-select"
+                        >
+                            <option value="todos">Todos</option>
+                            <option value="activos">Solo Activos</option>
+                            <option value="inactivos">Solo Inactivos</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
