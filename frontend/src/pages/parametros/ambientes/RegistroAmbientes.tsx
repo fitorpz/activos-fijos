@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
+import AsyncSelect from 'react-select/async';
+
 
 interface Area {
     id: number;
@@ -29,18 +31,33 @@ const RegistroAmbientes = () => {
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
+    // ✅ Cargar áreas al iniciar
     useEffect(() => {
         cargarAreas();
     }, []);
 
+    // ✅ Cargar unidades al seleccionar área
     useEffect(() => {
         if (formData.area_id) {
             cargarUnidadesPorArea(parseInt(formData.area_id));
         } else {
             setUnidades([]);
-            setFormData(prev => ({ ...prev, unidad_organizacional_id: '' }));
+            setFormData(prev => ({
+                ...prev,
+                unidad_organizacional_id: '',
+                codigo: ''
+            }));
         }
     }, [formData.area_id]);
+
+    // ✅ Generar código al seleccionar unidad
+    useEffect(() => {
+        if (formData.unidad_organizacional_id) {
+            generarCodigo(parseInt(formData.unidad_organizacional_id));
+        } else {
+            setFormData(prev => ({ ...prev, codigo: '' }));
+        }
+    }, [formData.unidad_organizacional_id]);
 
     const cargarAreas = async () => {
         try {
@@ -64,6 +81,57 @@ const RegistroAmbientes = () => {
         }
     };
 
+    const buscarUnidadesAsync = async (inputValue: string) => {
+        if (!formData.area_id) return [];
+
+        try {
+            const res = await axios.get<UnidadOrganizacional[]>('/parametros/unidades-organizacionales/buscar', {
+                params: {
+                    estado: 'ACTIVO',
+                    area_id: formData.area_id,
+                    q: inputValue
+                }
+            });
+
+            return res.data.map((unidad) => ({
+                value: unidad.id.toString(),
+                label: `${unidad.codigo} - ${unidad.descripcion}`
+            }));
+        } catch (error) {
+            console.error('❌ Error al buscar unidades organizacionales:', error);
+            return [];
+        }
+    };
+
+
+    const generarCodigo = async (unidadId: number) => {
+        console.log('🧪 Enviando unidad_id =', unidadId);
+
+        try {
+            const res = await axios.get<{ total: number }>('/parametros/ambientes/contar', {
+                params: { unidad_id: unidadId }
+            });
+
+            console.log('📥 Respuesta del backend:', res.data);
+
+            const unidad = unidades.find(u => u.id === unidadId);
+            if (!unidad) return;
+
+            const total = res.data.total || 0;
+            const correlativo = (total + 1).toString().padStart(2, '0');
+            const codigoGenerado = `${unidad.codigo}.${correlativo}`;
+
+            setFormData(prev => ({
+                ...prev,
+                codigo: codigoGenerado
+            }));
+        } catch (error) {
+            console.error('❌ Error al generar código automático:', error);
+        }
+    };
+
+
+
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
@@ -71,7 +139,7 @@ const RegistroAmbientes = () => {
         setFormData((prev) => ({
             ...prev,
             [name]: value,
-            ...(name === 'area_id' && { unidad_organizacional_id: '' }) // resetear unidad si cambia el área
+            ...(name === 'area_id' && { unidad_organizacional_id: '', codigo: '' }) // resetear dependientes
         }));
     };
 
@@ -112,33 +180,6 @@ const RegistroAmbientes = () => {
             {error && <div className="alert alert-danger">{error}</div>}
 
             <form onSubmit={handleSubmit} className="card p-4 shadow-sm">
-                {/* Código */}
-                <div className="mb-3">
-                    <label htmlFor="codigo" className="form-label">Código</label>
-                    <input
-                        type="text"
-                        id="codigo"
-                        name="codigo"
-                        className="form-control"
-                        value={formData.codigo}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
-
-                {/* Descripción */}
-                <div className="mb-3">
-                    <label htmlFor="descripcion" className="form-label">Descripción</label>
-                    <textarea
-                        id="descripcion"
-                        name="descripcion"
-                        className="form-control"
-                        value={formData.descripcion}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
-
                 {/* Área */}
                 <div className="mb-3">
                     <label htmlFor="area_id" className="form-label">Área</label>
@@ -161,23 +202,60 @@ const RegistroAmbientes = () => {
 
                 {/* Unidad Organizacional */}
                 <div className="mb-3">
-                    <label htmlFor="unidad_organizacional_id" className="form-label">Unidad Organizacional</label>
-                    <select
-                        id="unidad_organizacional_id"
-                        name="unidad_organizacional_id"
-                        className="form-select"
-                        value={formData.unidad_organizacional_id}
+                    <label className="form-label">Unidad Organizacional</label>
+                    <AsyncSelect
+                        cacheOptions
+                        loadOptions={buscarUnidadesAsync}
+                        defaultOptions
+                        isDisabled={!formData.area_id}
+                        placeholder="Escriba para buscar..."
+                        value={
+                            formData.unidad_organizacional_id
+                                ? {
+                                    value: formData.unidad_organizacional_id,
+                                    label:
+                                        unidades.find(u => u.id.toString() === formData.unidad_organizacional_id)
+                                            ?.codigo +
+                                        ' - ' +
+                                        unidades.find(u => u.id.toString() === formData.unidad_organizacional_id)
+                                            ?.descripcion,
+                                }
+                                : null
+                        }
+                        onChange={(opcion) => {
+                            setFormData((prev) => ({
+                                ...prev,
+                                unidad_organizacional_id: opcion?.value || '',
+                            }));
+                        }}
+                    />
+                </div>
+
+
+                {/* Código generado */}
+                <div className="mb-3">
+                    <label htmlFor="codigo" className="form-label">Código (generado automáticamente)</label>
+                    <input
+                        type="text"
+                        id="codigo"
+                        name="codigo"
+                        className="form-control"
+                        value={formData.codigo}
+                        readOnly
+                    />
+                </div>
+
+                {/* Descripción */}
+                <div className="mb-3">
+                    <label htmlFor="descripcion" className="form-label">Descripción</label>
+                    <textarea
+                        id="descripcion"
+                        name="descripcion"
+                        className="form-control"
+                        value={formData.descripcion}
                         onChange={handleChange}
                         required
-                        disabled={!formData.area_id}
-                    >
-                        <option value="">Seleccione una unidad organizacional</option>
-                        {unidades.map(unidad => (
-                            <option key={unidad.id} value={unidad.id}>
-                                {unidad.codigo} - {unidad.descripcion}
-                            </option>
-                        ))}
-                    </select>
+                    />
                 </div>
 
                 {/* Botones */}

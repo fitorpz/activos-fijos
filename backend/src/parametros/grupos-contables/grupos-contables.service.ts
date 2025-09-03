@@ -16,21 +16,66 @@ export class GruposContablesService {
     private readonly usuarioRepo: Repository<Usuario>,
   ) { }
 
-  // Crear nuevo grupo contable
+  // Crear nuevo grupo contable con generación automática de subgrupo si el código ya existe
   async create(dto: CreateGruposContablesDto, userId: number): Promise<GrupoContable> {
     const usuario = await this.usuarioRepo.findOneBy({ id: userId });
     if (!usuario) {
       throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
     }
 
+    const codigoFinal = await this.generarCodigoDisponible(dto.codigo.trim());
+
     const nuevoGrupo = this.grupoRepo.create({
       ...dto,
+      codigo: codigoFinal,
       estado: dto.estado ?? 'ACTIVO',
       creado_por: usuario,
     });
 
     return this.grupoRepo.save(nuevoGrupo);
   }
+
+  // Genera un código disponible. Si ya existe el base, genera el siguiente subgrupo: 125.01, 125.02, etc.
+  private async generarCodigoDisponible(codigoBase: string): Promise<string> {
+    const base = codigoBase.split('.')[0];
+
+    const existentes = await this.grupoRepo.createQueryBuilder('g')
+      .select(['g.codigo'])
+      .where('g.codigo = :base OR g.codigo LIKE :like', {
+        base,
+        like: `${base}.%`,
+      })
+      .getMany();
+
+    const codigos = new Set(existentes.map(e => e.codigo));
+
+    // Si el base no existe y el usuario no está enviando un subgrupo, se respeta el código
+    if (!codigoBase.includes('.') && !codigos.has(codigoBase)) {
+      return codigoBase;
+    }
+
+    // Si el usuario envió subgrupo y no existe aún, se respeta
+    if (codigoBase.includes('.') && !codigos.has(codigoBase)) {
+      return codigoBase;
+    }
+
+    // Generar el siguiente subgrupo disponible: base.01, base.02, ...
+    let max = 0;
+    for (const codigo of codigos) {
+      if (codigo === base) continue;
+
+      const parte = codigo.substring(base.length + 1); // e.g. "01"
+      const num = parseInt(parte, 10);
+      if (!isNaN(num)) {
+        max = Math.max(max, num);
+      }
+    }
+
+    const siguiente = (max + 1).toString().padStart(2, '2');
+    return `${base}.${siguiente}`;
+  }
+
+
 
   // Obtener todos los grupos contables (filtrables por estado)
   async findAll(estado?: string): Promise<GrupoContable[]> {
@@ -108,4 +153,10 @@ export class GruposContablesService {
 
     return { message: 'Grupo Contable marcado como INACTIVO' };
   }
+
+  // Público: solo para sugerencia desde frontend
+  async sugerirCodigoDisponible(codigoBase: string): Promise<string> {
+    return this.generarCodigoDisponible(codigoBase.trim());
+  }
+
 }

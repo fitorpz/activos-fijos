@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
+import AsyncSelect from 'react-select/async';
 
 interface Area {
     id: number;
@@ -34,33 +35,9 @@ const EditarAmbientes = () => {
     });
 
     const [areas, setAreas] = useState<Area[]>([]);
-    const [unidades, setUnidades] = useState<UnidadOrganizacional[]>([]);
+    const [unidadSeleccionada, setUnidadSeleccionada] = useState<any>(null);
     const [cargando, setCargando] = useState(true);
     const [guardando, setGuardando] = useState(false);
-
-    // ✅ Cargar ambiente actual
-    const obtenerAmbiente = async () => {
-        try {
-            const res = await axios.get<Ambiente>(`/parametros/ambientes/${id}`);
-            const ambiente = res.data;
-
-            setFormData({
-                codigo: ambiente.codigo || '',
-                descripcion: ambiente.descripcion || '',
-                area_id: ambiente.unidad_organizacional.area.id.toString() || '',
-                unidad_organizacional_id: ambiente.unidad_organizacional.id.toString() || '',
-            });
-
-            // Cargar unidades según el área del ambiente
-            await cargarUnidadesPorArea(ambiente.unidad_organizacional.area.id);
-        } catch (error) {
-            console.error('❌ Error al cargar el ambiente:', error);
-            alert('Error al cargar el ambiente. Intente nuevamente.');
-            navigate('/parametros/ambientes');
-        } finally {
-            setCargando(false);
-        }
-    };
 
     const cargarAreas = async () => {
         try {
@@ -73,27 +50,99 @@ const EditarAmbientes = () => {
         }
     };
 
-    const cargarUnidadesPorArea = async (areaId: number) => {
+    const obtenerAmbiente = async () => {
         try {
-            const res = await axios.get<UnidadOrganizacional[]>('/parametros/unidades-organizacionales', {
-                params: { estado: 'ACTIVO', area_id: areaId },
+            const res = await axios.get<Ambiente>(`/parametros/ambientes/${id}`);
+            const ambiente = res.data;
+
+            setFormData({
+                codigo: ambiente.codigo || '',
+                descripcion: ambiente.descripcion || '',
+                area_id: ambiente.unidad_organizacional.area.id.toString(),
+                unidad_organizacional_id: ambiente.unidad_organizacional.id.toString(),
             });
-            setUnidades(res.data);
+
+            setUnidadSeleccionada({
+                value: ambiente,
+                label: `${ambiente.unidad_organizacional.codigo} - ${ambiente.unidad_organizacional.descripcion}`,
+            });
         } catch (error) {
-            console.error('❌ Error al cargar unidades organizacionales:', error);
+            console.error('❌ Error al cargar el ambiente:', error);
+            alert('Error al cargar el ambiente. Intente nuevamente.');
+            navigate('/parametros/ambientes');
+        } finally {
+            setCargando(false);
         }
     };
 
-    // ✅ Cambio de inputs
-    const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-    ) => {
+    const areaIdActual = () => {
+        return formData.area_id || '';
+    };
+
+    const buscarUnidadesAsync = async (inputValue: string) => {
+        const area_id = areaIdActual();
+        if (!area_id) return [];
+
+        try {
+            const res = await axios.get<UnidadOrganizacional[]>('/parametros/unidades-organizacionales/buscar', {
+                params: {
+                    estado: 'ACTIVO',
+                    area_id,
+                    q: inputValue
+                }
+            });
+
+            return res.data.map((unidad) => ({
+                value: unidad,
+                label: `${unidad.codigo} - ${unidad.descripcion}`
+            }));
+        } catch (error) {
+            console.error('❌ Error al buscar unidades organizacionales:', error);
+            return [];
+        }
+    };
+
+    const generarCodigo = async (unidad: UnidadOrganizacional) => {
+        try {
+            const res = await axios.get<{ total: number }>('/parametros/ambientes/contar', {
+                params: { unidad_id: unidad.id },
+            });
+
+            const correlativo = (res.data.total + 1).toString().padStart(2, '0');
+            const nuevoCodigo = `${unidad.codigo}.${correlativo}`;
+
+            setFormData(prev => ({ ...prev, codigo: nuevoCodigo }));
+        } catch (error) {
+            console.error('❌ Error al generar código automático:', error);
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({
+
+        if (name === 'area_id') {
+            setFormData(prev => ({
+                ...prev,
+                area_id: value,
+                unidad_organizacional_id: '',
+                codigo: '',
+            }));
+            setUnidadSeleccionada(null);
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
+    };
+
+    const handleUnidadChange = (opcion: any) => {
+        if (!opcion) return;
+        const unidad = opcion.value;
+        setUnidadSeleccionada(opcion);
+        setFormData(prev => ({
             ...prev,
-            [name]: value,
-            ...(name === 'area_id' && { unidad_organizacional_id: '' }), // resetear unidad si cambia el área
+            unidad_organizacional_id: unidad.id,
+            area_id: unidad.area.id,
         }));
+        generarCodigo(unidad);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -103,7 +152,7 @@ const EditarAmbientes = () => {
             const payload = {
                 codigo: formData.codigo.trim(),
                 descripcion: formData.descripcion.trim(),
-                unidad_organizacional_id: parseInt(formData.unidad_organizacional_id),
+                unidad_organizacional_id: formData.unidad_organizacional_id,
             };
 
             await axios.put(`/parametros/ambientes/${id}`, payload);
@@ -122,15 +171,6 @@ const EditarAmbientes = () => {
         obtenerAmbiente();
     }, []);
 
-    useEffect(() => {
-        if (formData.area_id) {
-            cargarUnidadesPorArea(parseInt(formData.area_id));
-        } else {
-            setUnidades([]);
-            setFormData(prev => ({ ...prev, unidad_organizacional_id: '' }));
-        }
-    }, [formData.area_id]);
-
     return (
         <div className="container mt-4">
             <div className="form-container">
@@ -139,35 +179,6 @@ const EditarAmbientes = () => {
                     <p>Cargando datos...</p>
                 ) : (
                     <form onSubmit={handleSubmit} className="card p-4 shadow-sm">
-
-                        {/* Código */}
-                        <div className="mb-3">
-                            <label htmlFor="codigo" className="form-label">Código</label>
-                            <input
-                                type="text"
-                                id="codigo"
-                                name="codigo"
-                                className="form-control"
-                                value={formData.codigo}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-
-                        {/* Descripción */}
-                        <div className="mb-3">
-                            <label htmlFor="descripcion" className="form-label">Descripción</label>
-                            <textarea
-                                id="descripcion"
-                                name="descripcion"
-                                className="form-control"
-                                value={formData.descripcion}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-
-                        {/* Área */}
                         <div className="mb-3">
                             <label htmlFor="area_id" className="form-label">Área</label>
                             <select
@@ -187,37 +198,48 @@ const EditarAmbientes = () => {
                             </select>
                         </div>
 
-                        {/* Unidad organizacional */}
                         <div className="mb-3">
-                            <label htmlFor="unidad_organizacional_id" className="form-label">Unidad Organizacional</label>
-                            <select
-                                id="unidad_organizacional_id"
-                                name="unidad_organizacional_id"
-                                className="form-select"
-                                value={formData.unidad_organizacional_id}
-                                onChange={handleChange}
-                                required
-                                disabled={!formData.area_id}
-                            >
-                                <option value="">Seleccione una unidad organizacional</option>
-                                {unidades.map((unidad) => (
-                                    <option key={unidad.id} value={unidad.id}>
-                                        {unidad.codigo} - {unidad.descripcion}
-                                    </option>
-                                ))}
-                            </select>
+                            <label className="form-label">Unidad Organizacional</label>
+                            <AsyncSelect
+                                cacheOptions
+                                loadOptions={buscarUnidadesAsync}
+                                defaultOptions
+                                isDisabled={!formData.area_id}
+                                placeholder="Buscar unidad organizacional..."
+                                value={unidadSeleccionada}
+                                onChange={handleUnidadChange}
+                            />
                         </div>
 
-                        {/* Botones */}
+                        <div className="mb-3">
+                            <label htmlFor="codigo" className="form-label">Código</label>
+                            <input
+                                type="text"
+                                id="codigo"
+                                name="codigo"
+                                className="form-control"
+                                value={formData.codigo}
+                                readOnly
+                            />
+                        </div>
+
+                        <div className="mb-3">
+                            <label htmlFor="descripcion" className="form-label">Descripción</label>
+                            <textarea
+                                id="descripcion"
+                                name="descripcion"
+                                className="form-control"
+                                value={formData.descripcion}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+
                         <div className="d-flex justify-content-end">
                             <button type="submit" className="btn btn-primary" disabled={guardando}>
                                 {guardando ? 'Guardando...' : 'Guardar Cambios'}
                             </button>
-                            <button
-                                type="button"
-                                className="btn btn-secondary ms-2"
-                                onClick={() => navigate('/parametros/ambientes')}
-                            >
+                            <button type="button" className="btn btn-secondary ms-2" onClick={() => navigate('/parametros/ambientes')}>
                                 Cancelar
                             </button>
                         </div>

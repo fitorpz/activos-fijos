@@ -11,6 +11,7 @@ import {
   Req,
   Query,
   Res,
+  BadRequestException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -50,10 +51,20 @@ export class GruposContablesController {
     return this.gruposService.findAll(estado);
   }
 
+  @Get('sugerir-codigo')
+  async sugerirCodigo(@Query('codigo') codigo: string) {
+    if (!codigo) throw new BadRequestException('Código base requerido');
+    const sugerido = await this.gruposService.sugerirCodigoDisponible(codigo);
+    return { sugerido };
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.gruposService.findOne(id);
   }
+
+
+
 
   @Put(':id')
   update(

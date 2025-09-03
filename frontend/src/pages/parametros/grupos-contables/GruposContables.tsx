@@ -108,7 +108,7 @@ const GruposContables = () => {
                     <p className="text-muted small">Gestión de grupos contables registrados</p>
                 </div>
 
-                <div className="d-flex flex-wrap gap-2">
+                <div className="d-flex flex-wrap align-items-center gap-2">
                     <button
                         className="btn btn-primary"
                         onClick={() => navigate('/parametros/grupos-contables/registrar')}
@@ -116,22 +116,32 @@ const GruposContables = () => {
                         <i className="bi bi-plus-lg me-1"></i> Nuevo Grupo
                     </button>
 
-                    <button className="btn btn-outline-success ms-2" onClick={exportarPDF}>
+                    <button className="btn btn-outline-success" onClick={exportarPDF}>
                         <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
                     </button>
 
-                    <select
-                        id="filtro-estado"
-                        value={estadoFiltro}
-                        onChange={(e) => setEstadoFiltro(e.target.value)}
-                        className="form-select"
+                    <button
+                        className="btn btn-outline-secondary"
+                        onClick={() => navigate('/parametros')}
                     >
-                        <option value="todos">Todos</option>
-                        <option value="activos">Solo Activos</option>
-                        <option value="inactivos">Solo Inactivos</option>
-                    </select>
+                        <i className="bi bi-arrow-left me-1"></i> Volver a Parámetros
+                    </button>
+
+                    <div style={{ minWidth: '160px' }}>
+                        <select
+                            id="filtro-estado"
+                            value={estadoFiltro}
+                            onChange={(e) => setEstadoFiltro(e.target.value)}
+                            className="form-select"
+                        >
+                            <option value="todos">Todos</option>
+                            <option value="activos">Solo Activos</option>
+                            <option value="inactivos">Solo Inactivos</option>
+                        </select>
+                    </div>
                 </div>
             </div>
+
 
             <div className="table-responsive">
                 <table className="table table-bordered table-hover align-middle">
@@ -162,7 +172,7 @@ const GruposContables = () => {
                                     <td>{grupo.codigo}</td>
                                     <td>{grupo.descripcion}</td>
                                     <td>{grupo.tiempo}</td>
-                                    <td>{grupo.porcentaje}</td>
+                                    <td>{grupo.porcentaje}%</td>
                                     <td>{grupo.estado}</td>
                                     <td>
                                         {grupo.creado_por

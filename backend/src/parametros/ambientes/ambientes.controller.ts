@@ -10,6 +10,7 @@ import {
   UseGuards,
   Query,
   Res,
+  BadRequestException,
 } from '@nestjs/common';
 import { AmbientesService } from './ambientes.service';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
@@ -39,21 +40,30 @@ export class AmbientesController {
     return this.ambientesService.findAll(estado);
   }
 
+  // ✅ Este método DEBE ir antes de @Get(':id') para evitar conflicto
+  @Get('contar')
+  async contarPorUnidad(
+    @Query('unidad_id', ParseIntPipe) unidadId: number
+  ) {
+    if (!unidadId || isNaN(unidadId)) {
+      throw new BadRequestException('unidad_id es requerido y debe ser numérico');
+    }
+
+    const total = await this.ambientesService.contarPorUnidad(unidadId);
+    return { total };
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.ambientesService.findOne(id);
   }
 
   @Put(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateAmbienteDto,
-    @Req() req: RequestWithUser,
-  ) {
-    return this.ambientesService.update(id, dto, req.user.id);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateDto: UpdateAmbienteDto) {
+    return this.ambientesService.update(id, updateDto);
   }
 
-  // ✅ Cambio de estado (ACTIVO/INACTIVO)
+
   @Put(':id/cambiar-estado')
   cambiarEstado(
     @Param('id', ParseIntPipe) id: number,
@@ -62,7 +72,6 @@ export class AmbientesController {
     return this.ambientesService.cambiarEstado(id, req.user.id);
   }
 
-  // ✅ Exportar PDF
   @Get('exportar/pdf')
   async exportarPDF(
     @Res() res: Response,

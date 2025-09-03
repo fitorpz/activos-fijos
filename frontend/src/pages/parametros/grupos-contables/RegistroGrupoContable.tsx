@@ -12,6 +12,7 @@ const RegistroGrupoContable = () => {
     });
 
     const [cargando, setCargando] = useState(false);
+    const [mensajeCodigo, setMensajeCodigo] = useState<string | null>(null);
     const navigate = useNavigate();
 
     const handleChange = (
@@ -20,6 +21,49 @@ const RegistroGrupoContable = () => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
+
+    interface VerificacionCodigoResponse {
+        disponible: boolean;
+    }
+
+    const verificarCodigoDisponible = async (codigo: string) => {
+        try {
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                console.error("⚠️ No hay token en localStorage");
+                setMensajeCodigo("⚠️ No hay sesión activa.");
+                return;
+            }
+
+            const response = await axios.get<VerificacionCodigoResponse>(
+                `http://localhost:3001/parametros/grupos-contables/sugerir-codigo`,
+                {
+                    params: { codigo },
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            if (response.data.disponible === false) {
+                setMensajeCodigo("⚠️ El código ya existe, se generará uno como subgrupo.");
+            } else {
+                setMensajeCodigo("");
+            }
+        } catch (error: any) {
+            console.error("❌ Error en sugerir código:", error);
+
+            if (error.response?.status === 401) {
+                setMensajeCodigo("⚠️ Sesión expirada. Por favor, vuelve a iniciar sesión.");
+            } else if (error.code === "ERR_NETWORK") {
+                setMensajeCodigo("❌ Error de conexión con el servidor.");
+            } else {
+                setMensajeCodigo("⚠️ No se pudo verificar el código.");
+            }
+        }
+    };
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,13 +79,18 @@ const RegistroGrupoContable = () => {
             };
 
             const token = localStorage.getItem('token');
-            await axios.post('/parametros/grupos-contables', payload, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            const response = await axios.post<{ codigo: string }>(
+                '/parametros/grupos-contables',
+                payload,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
 
-            alert('✅ Grupo Contable registrado con éxito.');
+            const codigoFinal = response.data.codigo;
+            alert(`✅ Grupo Contable registrado con código: ${codigoFinal}`);
             navigate('/parametros/grupos-contables');
         } catch (error: any) {
             console.error('❌ Error al registrar grupo contable:', error);
@@ -65,8 +114,12 @@ const RegistroGrupoContable = () => {
                             className="form-control"
                             value={formData.codigo}
                             onChange={handleChange}
+                            onBlur={(e) => verificarCodigoDisponible(e.target.value)}
                             required
                         />
+                        {mensajeCodigo && (
+                            <small className="text-muted">{mensajeCodigo}</small>
+                        )}
                     </div>
 
                     <div className="mb-3">

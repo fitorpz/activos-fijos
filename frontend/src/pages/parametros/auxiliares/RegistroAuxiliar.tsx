@@ -79,6 +79,24 @@ const RegistroAuxiliar = () => {
                 <h4 className="mb-4">Nuevo Auxiliar</h4>
                 <form onSubmit={handleSubmit}>
                     <div className="mb-3">
+                        <label htmlFor="codigo_grupo" className="form-label">Grupo Contable</label>
+                        <select
+                            id="codigo_grupo"
+                            name="codigo_grupo"
+                            className="form-select"
+                            value={formData.codigo_grupo}
+                            onChange={handleChange}
+                            required
+                        >
+                            <option value="">-- Selecciona un grupo contable --</option>
+                            {gruposContables.map((grupo) => (
+                                <option key={grupo.id} value={grupo.codigo}>
+                                    {grupo.codigo} - {grupo.descripcion}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="mb-3">
                         <label htmlFor="codigo" className="form-label">Código</label>
                         <input
                             type="text"
@@ -101,25 +119,6 @@ const RegistroAuxiliar = () => {
                             onChange={handleChange}
                             required
                         />
-                    </div>
-
-                    <div className="mb-3">
-                        <label htmlFor="codigo_grupo" className="form-label">Grupo Contable</label>
-                        <select
-                            id="codigo_grupo"
-                            name="codigo_grupo"
-                            className="form-select"
-                            value={formData.codigo_grupo}
-                            onChange={handleChange}
-                            required
-                        >
-                            <option value="">-- Selecciona un grupo contable --</option>
-                            {gruposContables.map((grupo) => (
-                                <option key={grupo.id} value={grupo.codigo}>
-                                    {grupo.codigo} - {grupo.descripcion}
-                                </option>
-                            ))}
-                        </select>
                     </div>
 
                     <div className="mb-3">

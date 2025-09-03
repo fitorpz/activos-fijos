@@ -34,7 +34,7 @@ export class UnidadesOrganizacionalesService {
     return this.unidadRepo.save(nueva);
   }
 
-  async findAll(estado?: string): Promise<UnidadOrganizacional[]> {
+  async findAll(estado?: string, area_id?: number): Promise<UnidadOrganizacional[]> {
     const query = this.unidadRepo.createQueryBuilder('unidad')
       .leftJoinAndSelect('unidad.area', 'area')
       .leftJoinAndSelect('unidad.creado_por', 'creado_por')
@@ -46,8 +46,13 @@ export class UnidadesOrganizacionalesService {
       query.andWhere('unidad.estado = :estado', { estado: estado.toUpperCase() });
     }
 
+    if (area_id) {
+      query.andWhere('unidad.area_id = :area_id', { area_id });
+    }
+
     return query.getMany();
   }
+
 
   async findOne(id: number): Promise<UnidadOrganizacional> {
     const unidad = await this.unidadRepo.findOne({
@@ -123,7 +128,21 @@ export class UnidadesOrganizacionalesService {
     });
   }
 
+  async buscarPorTexto(area_id: number, q: string): Promise<UnidadOrganizacional[]> {
+    const query = this.unidadRepo.createQueryBuilder('unidad')
+      .leftJoinAndSelect('unidad.area', 'area')
+      .where('unidad.area_id = :area_id', { area_id })
+      .andWhere('unidad.estado = :estado', { estado: 'ACTIVO' })
+      .andWhere('unidad.deleted_at IS NULL');
 
+    if (q && q.trim() !== '') {
+      query.andWhere(
+        '(LOWER(unidad.descripcion) LIKE LOWER(:q) OR LOWER(unidad.codigo) LIKE LOWER(:q))',
+        { q: `%${q.trim()}%` }
+      );
+    }
 
+    return query.orderBy('unidad.descripcion', 'ASC').take(15).getMany(); // limitar resultados
+  }
 
 }

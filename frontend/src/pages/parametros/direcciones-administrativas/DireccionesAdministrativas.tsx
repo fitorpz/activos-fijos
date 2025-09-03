@@ -170,10 +170,6 @@ const DireccionesAdministrativas = () => {
                 </div>
 
             </div>
-
-
-
-
             <div className="table-responsive">
                 <table className="table table-bordered table-hover align-middle">
                     <thead className="table-light">

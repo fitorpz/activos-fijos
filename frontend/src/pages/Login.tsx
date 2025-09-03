@@ -50,7 +50,8 @@ const Login = () => {
             localStorage.setItem('usuario', JSON.stringify(data.usuario));
 
             // ✅ Redireccionar al dashboard (forzar recarga para que detecte token)
-            window.location.href = '/dashboard';
+            window.location.href = '/parametros'; // Esto recarga la página completamente.
+
 
         } catch (error) {
             console.error('Error en login:', error);

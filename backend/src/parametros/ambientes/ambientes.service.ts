@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+
 import { Ambiente } from './entities/ambiente.entity';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
 import { UpdateAmbienteDto } from './dto/update-ambiente.dto';
@@ -66,27 +67,41 @@ export class AmbientesService {
   async findOne(id: number): Promise<Ambiente> {
     const ambiente = await this.ambienteRepo.findOne({
       where: { id },
-      relations: ['unidad_organizacional', 'unidad_organizacional.area', 'creado_por', 'actualizado_por'], // ✅ importante
+      relations: ['unidad_organizacional', 'unidad_organizacional.area', 'creado_por', 'actualizado_por'],
     });
 
     if (!ambiente) throw new NotFoundException('Ambiente no encontrado');
     return ambiente;
   }
 
+  async update(id: number, updateDto: UpdateAmbienteDto): Promise<Ambiente> {
+    const ambiente = await this.ambienteRepo.findOne({
+      where: { id },
+      relations: ['unidad_organizacional'],
+    });
 
-  async update(id: number, dto: UpdateAmbienteDto, userId: number): Promise<Ambiente> {
-    const ambiente = await this.findOne(id);
-    const usuario = await this.usuarioRepo.findOneBy({ id: userId });
+    if (!ambiente) throw new NotFoundException('Ambiente no encontrado');
 
-    if (!usuario) throw new NotFoundException('Usuario no válido');
-
-    if (dto.descripcion !== undefined) {
-      ambiente.descripcion = dto.descripcion;
+    // Actualizar campos solo si fueron enviados
+    if (updateDto.descripcion !== undefined) {
+      ambiente.descripcion = updateDto.descripcion;
     }
 
-    ambiente.actualizado_por = usuario;
-    ambiente.actualizado_por_id = usuario.id;
-    ambiente.updated_at = new Date();
+    if (updateDto.codigo !== undefined) {
+      ambiente.codigo = updateDto.codigo;
+    }
+
+    if (updateDto.unidad_organizacional_id !== undefined) {
+      const unidad = await this.unidadRepo.findOne({
+        where: { id: updateDto.unidad_organizacional_id },
+        relations: ['area'],
+      });
+
+      if (!unidad) throw new NotFoundException('Unidad Organizacional no encontrada');
+
+      ambiente.unidad_organizacional = unidad;
+      ambiente.unidad_organizacional_id = unidad.id;
+    }
 
     return this.ambienteRepo.save(ambiente);
   }
@@ -94,9 +109,8 @@ export class AmbientesService {
   async remove(id: number): Promise<{ message: string }> {
     const ambiente = await this.findOne(id);
     ambiente.estado = 'INACTIVO';
-    return this.ambienteRepo.save(ambiente).then(() => ({
-      message: 'Ambiente marcado como INACTIVO',
-    }));
+    await this.ambienteRepo.save(ambiente);
+    return { message: 'Ambiente marcado como INACTIVO' };
   }
 
   async cambiarEstado(id: number, userId: number): Promise<Ambiente> {
@@ -111,5 +125,11 @@ export class AmbientesService {
     ambiente.updated_at = new Date();
 
     return this.ambienteRepo.save(ambiente);
+  }
+
+  async contarPorUnidad(unidadId: number): Promise<number> {
+    return this.ambienteRepo.count({
+      where: { unidad_organizacional_id: unidadId },
+    });
   }
 }
