@@ -132,4 +132,17 @@ export class AmbientesService {
       where: { unidad_organizacional_id: unidadId },
     });
   }
+
+  async buscarPorUnidadYTexto(unidadId: number, texto: string): Promise<Ambiente[]> {
+    return this.ambienteRepo.createQueryBuilder('ambiente')
+      .where('ambiente.unidad_organizacional_id = :unidadId', { unidadId })
+      .andWhere('ambiente.estado = :estado', { estado: 'ACTIVO' })
+      .andWhere('(LOWER(ambiente.descripcion) LIKE :texto OR LOWER(ambiente.codigo) LIKE :texto)', {
+        texto: `%${texto.toLowerCase()}%`,
+      })
+      .orderBy('ambiente.codigo', 'ASC')
+      .take(10)
+      .getMany();
+  }
+
 }

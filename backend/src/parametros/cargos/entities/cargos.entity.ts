@@ -9,25 +9,37 @@ import {
 } from 'typeorm';
 import { Usuario } from 'src/usuarios/entities/usuario.entity';
 
-@Entity('grupos_contables')
-export class GrupoContable {
+@Entity('Cargos')
+export class Cargo {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @Column()
+  area: string;
+
+   @Column({ nullable: true })
+  unidad_organizacional: string;
+
+  @Column({ nullable: false })
+  estado: string;
+
+   @Column({ nullable: true })
+  ambiente: string;
 
   @Column({ nullable: true })
   codigo: string;
 
-  @Column()
-  descripcion: string;
+  @Column({ nullable: true })
+  cargo: string;
 
-  @Column('int')
-  tiempo: number;
+  @Column({ nullable: true })
+  personal1: string;
 
-  @Column('numeric', { precision: 5, scale: 2, nullable: true })
-  porcentaje: number;
+  @Column({ nullable: true })
+  personal2: string;
 
-  @Column({ type: 'enum', enum: ['ACTIVO', 'INACTIVO'], default: 'ACTIVO' })
-  estado: 'ACTIVO' | 'INACTIVO'; // ✅ ESTADO reemplaza deleted_at
+  @Column({ nullable: true })
+  personal3: string;
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
@@ -48,4 +60,7 @@ export class GrupoContable {
 
   @Column({ name: 'actualizado_por_id', nullable: true })
   actualizado_por_id?: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  deleted_at: Date;
 }

@@ -50,6 +50,17 @@ export class AuxiliaresController {
     return this.auxiliaresService.findAll(estado);
   }
 
+  @Get('siguiente-codigo')
+  async obtenerSiguienteCodigo(@Query('codigo_grupo') codigo_grupo: string) {
+    if (!codigo_grupo) {
+      throw new Error('El código del grupo contable es obligatorio');
+    }
+
+    const correlativo = await this.auxiliaresService.getSiguienteCodigoAuxiliar(codigo_grupo);
+    return { correlativo }; // ej: { correlativo: "0001" }
+  }
+
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.auxiliaresService.findOne(id);

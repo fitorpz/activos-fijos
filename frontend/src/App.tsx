@@ -31,6 +31,12 @@ import EditarGrupoContable from './pages/parametros/grupos-contables/EditarGrupo
 import Auxiliares from './pages/parametros/auxiliares/Auxiliares';
 import RegistroAuxiliar from './pages/parametros/auxiliares/RegistroAuxiliar';
 import EditarAuxiliar from './pages/parametros/auxiliares/EditarAuxiliar';
+import Personales from './pages/parametros/personales/Personales';
+import RegistroPersonal from './pages/parametros/personales/RegistroPersonal';
+import EditarPersonal from './pages/parametros/personales/EditarPersonal';
+import ListaCargos from './pages/parametros/cargos/Cargos';
+import RegistroCargos from './pages/parametros/cargos/RegistroCargos';
+import EditarCargos from './pages/parametros/cargos/EditarCargos';
 
 function App() {
   // ✅ Nueva validación basada en existencia de token
@@ -78,6 +84,12 @@ function App() {
             <Route path="/parametros/auxiliares" element={<Auxiliares />} />
             <Route path="/parametros/auxiliares/registrar" element={<RegistroAuxiliar />} />
             <Route path="/parametros/auxiliares/editar/:id" element={<EditarAuxiliar />} />
+            <Route path="/parametros/personales" element={<Personales />} />
+            <Route path="/parametros/personales/registrar" element={<RegistroPersonal />} />
+            <Route path="/parametros/personales/editar/:id" element={<EditarPersonal />} />
+            <Route path="/parametros/cargos" element={<ListaCargos />} />
+            <Route path="/parametros/cargos/registrar" element={<RegistroCargos />} />
+            <Route path="/parametros/cargos/editar/:id" element={<EditarCargos />} />
           </Route>
         )}
 

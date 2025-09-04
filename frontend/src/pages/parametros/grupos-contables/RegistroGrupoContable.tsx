@@ -13,6 +13,8 @@ const RegistroGrupoContable = () => {
 
     const [cargando, setCargando] = useState(false);
     const [mensajeCodigo, setMensajeCodigo] = useState<string | null>(null);
+    const [codigoDisponible, setCodigoDisponible] = useState<boolean | null>(null);
+
     const navigate = useNavigate();
 
     const handleChange = (
@@ -22,10 +24,6 @@ const RegistroGrupoContable = () => {
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-    interface VerificacionCodigoResponse {
-        disponible: boolean;
-    }
-
     const verificarCodigoDisponible = async (codigo: string) => {
         try {
             const token = localStorage.getItem('token');
@@ -33,10 +31,11 @@ const RegistroGrupoContable = () => {
             if (!token) {
                 console.error("⚠️ No hay token en localStorage");
                 setMensajeCodigo("⚠️ No hay sesión activa.");
+                setCodigoDisponible(false);
                 return;
             }
 
-            const response = await axios.get<VerificacionCodigoResponse>(
+            const response = await axios.get<{ sugerido: string }>(
                 `http://localhost:3001/parametros/grupos-contables/sugerir-codigo`,
                 {
                     params: { codigo },
@@ -46,11 +45,16 @@ const RegistroGrupoContable = () => {
                 }
             );
 
-            if (response.data.disponible === false) {
-                setMensajeCodigo("⚠️ El código ya existe, se generará uno como subgrupo.");
+            const sugerido = response.data.sugerido;
+
+            if (sugerido !== codigo) {
+                setMensajeCodigo(`⚠️ El código ya existe. Se generará como subgrupo: ${sugerido}`);
+                setCodigoDisponible(false);
             } else {
-                setMensajeCodigo("");
+                setMensajeCodigo(`✅ Código disponible.`);
+                setCodigoDisponible(true);
             }
+
         } catch (error: any) {
             console.error("❌ Error en sugerir código:", error);
 
@@ -61,9 +65,10 @@ const RegistroGrupoContable = () => {
             } else {
                 setMensajeCodigo("⚠️ No se pudo verificar el código.");
             }
+
+            setCodigoDisponible(false);
         }
     };
-
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -111,14 +116,14 @@ const RegistroGrupoContable = () => {
                             type="text"
                             id="codigo"
                             name="codigo"
-                            className="form-control"
+                            className={`form-control ${codigoDisponible === false ? 'is-invalid' : ''}`}
                             value={formData.codigo}
                             onChange={handleChange}
                             onBlur={(e) => verificarCodigoDisponible(e.target.value)}
                             required
                         />
                         {mensajeCodigo && (
-                            <small className="text-muted">{mensajeCodigo}</small>
+                            <small className="text-muted d-block mt-1">{mensajeCodigo}</small>
                         )}
                     </div>
 
@@ -130,6 +135,7 @@ const RegistroGrupoContable = () => {
                             className="form-control"
                             value={formData.descripcion}
                             onChange={handleChange}
+                            disabled={codigoDisponible === false}
                             required
                         />
                     </div>
@@ -143,6 +149,7 @@ const RegistroGrupoContable = () => {
                             className="form-control"
                             value={formData.tiempo}
                             onChange={handleChange}
+                            disabled={codigoDisponible === false}
                             required
                             min="0"
                         />
@@ -157,6 +164,7 @@ const RegistroGrupoContable = () => {
                             className="form-control"
                             value={formData.porcentaje}
                             onChange={handleChange}
+                            disabled={codigoDisponible === false}
                             required
                             min="0"
                             max="100"
@@ -172,6 +180,7 @@ const RegistroGrupoContable = () => {
                             className="form-select"
                             value={formData.estado}
                             onChange={handleChange}
+                            disabled={codigoDisponible === false}
                             required
                         >
                             <option value="ACTIVO">ACTIVO</option>
@@ -179,7 +188,7 @@ const RegistroGrupoContable = () => {
                         </select>
                     </div>
 
-                    <button type="submit" className="btn btn-primary" disabled={cargando}>
+                    <button type="submit" className="btn btn-primary" disabled={cargando || codigoDisponible === false}>
                         {cargando ? 'Guardando...' : 'Registrar'}
                     </button>
                     <button

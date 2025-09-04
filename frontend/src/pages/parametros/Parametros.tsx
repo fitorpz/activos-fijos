@@ -28,7 +28,7 @@ const parametros = [
         icono: 'bi-person-lines-fill',
         color: 'success',
         items: [
-            { label: 'Personal', path: '/parametros/personal' },
+            { label: 'Personal', path: '/parametros/personales' },
             { label: 'Cargos', path: '/parametros/cargos' },
         ],
     },

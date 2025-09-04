@@ -23,6 +23,7 @@ const EditarGrupoContable = () => {
         estado: 'ACTIVO',
     });
 
+    const [codigoError, setCodigoError] = useState('');
     const [cargando, setCargando] = useState(true);
 
     useEffect(() => {
@@ -36,7 +37,7 @@ const EditarGrupoContable = () => {
                 codigo: res.data.codigo || '',
                 descripcion: res.data.descripcion || '',
                 tiempo: res.data.tiempo.toString() || '',
-                porcentaje: res.data.porcentaje.toString() || '',
+                porcentaje: res.data.porcentaje?.toString() || '',
                 estado: res.data.estado || 'ACTIVO',
             });
         } catch (error) {
@@ -48,11 +49,31 @@ const EditarGrupoContable = () => {
         }
     };
 
+    const validarCodigo = async (codigo: string) => {
+        try {
+            const response = await axios.get<{ exists: boolean; sugerido?: string }>(
+                `/parametros/grupos-contables/verificar-codigo?codigo=${codigo}`
+            );
+
+            if (response.data.exists) {
+                setCodigoError(`⚠️ El código ya existe. Se generará como subgrupo: ${response.data.sugerido}`);
+            } else {
+                setCodigoError('');
+            }
+        } catch (error) {
+            console.error('Error al verificar el código:', error);
+        }
+    };
+
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
+
+        if (name === 'codigo') {
+            validarCodigo(value.trim());
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -90,11 +111,12 @@ const EditarGrupoContable = () => {
                                 type="text"
                                 id="codigo"
                                 name="codigo"
-                                className="form-control"
+                                className={`form-control ${codigoError ? 'is-invalid' : ''}`}
                                 value={formData.codigo}
                                 onChange={handleChange}
                                 required
                             />
+                            {codigoError && <div className="invalid-feedback d-block">{codigoError}</div>}
                         </div>
 
                         <div className="mb-3">
@@ -154,7 +176,7 @@ const EditarGrupoContable = () => {
                             </select>
                         </div>
 
-                        <button type="submit" className="btn btn-primary">Guardar Cambios</button>
+                        <button type="submit" className="btn btn-primary" disabled={!!codigoError}>Guardar Cambios</button>
                         <button
                             type="button"
                             className="btn btn-secondary ms-2"

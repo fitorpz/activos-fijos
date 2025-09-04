@@ -9,25 +9,49 @@ import {
 } from 'typeorm';
 import { Usuario } from 'src/usuarios/entities/usuario.entity';
 
-@Entity('grupos_contables')
-export class GrupoContable {
+@Entity('Personales')
+export class Personal {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ nullable: true })
-  codigo: string;
+  @Column({ type: 'bigint', nullable: true })
+  documento: number;
 
   @Column()
-  descripcion: string;
+  ci: string;
 
-  @Column('int')
-  tiempo: number;
+  @Column({ nullable: false })
+  nombre: string;
 
-  @Column('numeric', { precision: 5, scale: 2, nullable: true })
-  porcentaje: number;
+  @Column({ nullable: false })
+  estado: string;
 
-  @Column({ type: 'enum', enum: ['ACTIVO', 'INACTIVO'], default: 'ACTIVO' })
-  estado: 'ACTIVO' | 'INACTIVO'; // ✅ ESTADO reemplaza deleted_at
+  @Column({ nullable: true })
+  expedido: string;
+
+  @Column({ nullable: true })
+  profesion: string;
+
+  @Column({ nullable: true })
+  direccion: string;
+
+  @Column({ nullable: true })
+  celular: string;
+
+  @Column({ nullable: true })
+  telefono: string;
+
+  @Column({ nullable: true })
+  email: string;
+
+  @Column({ nullable: true })
+  fecnac: string;
+
+  @Column({ nullable: true })
+  estciv: number;
+
+  @Column({ nullable: true })
+  sexo: number;
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
@@ -48,4 +72,7 @@ export class GrupoContable {
 
   @Column({ name: 'actualizado_por_id', nullable: true })
   actualizado_por_id?: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  deleted_at: Date;
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
+import Select from 'react-select';
 
 interface GrupoContable {
     id: number;
@@ -17,21 +18,53 @@ const RegistroAuxiliar = () => {
     });
 
     const [cargando, setCargando] = useState(false);
-    const [gruposContables, setGruposContables] = useState<GrupoContable[]>([]);
+    const [opcionesGrupo, setOpcionesGrupo] = useState<{ value: string; label: string }[]>([]);
     const navigate = useNavigate();
 
     useEffect(() => {
         cargarGruposContables();
     }, []);
 
+    useEffect(() => {
+        const generarCodigoAuxiliar = async () => {
+            if (!formData.codigo_grupo) return;
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await axios.get<{ correlativo: string }>(
+                    `/parametros/auxiliares/siguiente-codigo`,
+                    {
+                        params: { codigo_grupo: formData.codigo_grupo },
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+
+                const codigoGenerado = `${formData.codigo_grupo}.${response.data.correlativo}`;
+                setFormData((prev) => ({ ...prev, codigo: codigoGenerado }));
+            } catch (error) {
+                console.error("❌ Error al generar código auxiliar:", error);
+            }
+        };
+
+        generarCodigoAuxiliar();
+    }, [formData.codigo_grupo]);
+
     const cargarGruposContables = async () => {
         try {
             const token = localStorage.getItem('token');
             const res = await axios.get<GrupoContable[]>('/parametros/grupos-contables', {
                 headers: { Authorization: `Bearer ${token}` },
-                params: { estado: 'ACTIVO' }, // Solo activos
+                params: { estado: 'ACTIVO' },
             });
-            setGruposContables(res.data);
+
+            const opciones = res.data.map((grupo) => ({
+                value: grupo.codigo,
+                label: `${grupo.codigo} - ${grupo.descripcion}`,
+            }));
+
+            setOpcionesGrupo(opciones);
         } catch (error) {
             console.error('❌ Error al cargar grupos contables:', error);
         }
@@ -41,7 +74,11 @@ const RegistroAuxiliar = () => {
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -80,22 +117,19 @@ const RegistroAuxiliar = () => {
                 <form onSubmit={handleSubmit}>
                     <div className="mb-3">
                         <label htmlFor="codigo_grupo" className="form-label">Grupo Contable</label>
-                        <select
+                        <Select
                             id="codigo_grupo"
                             name="codigo_grupo"
-                            className="form-select"
-                            value={formData.codigo_grupo}
-                            onChange={handleChange}
-                            required
-                        >
-                            <option value="">-- Selecciona un grupo contable --</option>
-                            {gruposContables.map((grupo) => (
-                                <option key={grupo.id} value={grupo.codigo}>
-                                    {grupo.codigo} - {grupo.descripcion}
-                                </option>
-                            ))}
-                        </select>
+                            options={opcionesGrupo}
+                            value={opcionesGrupo.find(option => option.value === formData.codigo_grupo)}
+                            onChange={(selected) =>
+                                setFormData(prev => ({ ...prev, codigo_grupo: selected?.value || '' }))
+                            }
+                            placeholder="Buscar grupo contable..."
+                            isClearable
+                        />
                     </div>
+
                     <div className="mb-3">
                         <label htmlFor="codigo" className="form-label">Código</label>
                         <input
@@ -104,8 +138,7 @@ const RegistroAuxiliar = () => {
                             name="codigo"
                             className="form-control"
                             value={formData.codigo}
-                            onChange={handleChange}
-                            required
+                            readOnly
                         />
                     </div>
 

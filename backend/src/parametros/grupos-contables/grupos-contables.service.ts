@@ -71,7 +71,7 @@ export class GruposContablesService {
       }
     }
 
-    const siguiente = (max + 1).toString().padStart(2, '2');
+    const siguiente = (max + 1).toString().padStart(2, '0');
     return `${base}.${siguiente}`;
   }
 

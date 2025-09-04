@@ -112,4 +112,27 @@ export class AuxiliaresService {
 
     return { message: 'Auxiliar marcado como INACTIVO' };
   }
+
+  async getSiguienteCodigoAuxiliar(codigo_grupo: string): Promise<string> {
+    // Buscar todos los auxiliares con ese grupo contable
+    const auxiliares = await this.auxiliarRepo.find({
+      where: { codigo_grupo },
+      order: { codigo: 'DESC' },
+    });
+
+
+    if (auxiliares.length === 0) {
+      return '0001';
+    }
+
+
+    // Obtener el último auxiliar registrado y extraer su correlativo
+    const ultimoCodigo = auxiliares[0].codigo; // Ej: "125.01.0007"
+    const partes = ultimoCodigo.split('.');
+    const correlativoActual = partes[2];
+    const siguienteNumero = (parseInt(correlativoActual, 10) + 1).toString().padStart(4, '0');
+
+
+    return siguienteNumero; // Ej: "0008"
+  }
 }

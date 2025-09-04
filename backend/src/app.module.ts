@@ -11,6 +11,9 @@ import { AmbientesModule } from './parametros/ambientes/ambientes.module';
 import { AreasModule } from './parametros/areas/areas.module';
 import { GruposContablesModule } from './parametros/grupos-contables/grupos-contables.module';
 import { AuxiliaresModule } from './parametros/auxiliares/auxiliares.module';
+import { PersonalesModule } from './parametros/personal/personales.module';
+import { CargosModule } from './parametros/cargos/cargos.module';
+
 
 @Module({
   imports: [
@@ -54,6 +57,8 @@ import { AuxiliaresModule } from './parametros/auxiliares/auxiliares.module';
     AreasModule,
     GruposContablesModule,
     AuxiliaresModule,
+    PersonalesModule,
+    CargosModule,
   ],
 })
 export class AppModule { }

@@ -29,11 +29,18 @@ const EditarAuxiliar = () => {
 
     const [gruposContables, setGruposContables] = useState<GrupoContable[]>([]);
     const [cargando, setCargando] = useState(true);
+    const [cambioGrupo, setCambioGrupo] = useState(false);
 
     useEffect(() => {
         obtenerAuxiliar();
         obtenerGruposContables();
     }, []);
+
+    useEffect(() => {
+        if (cambioGrupo && formData.codigo_grupo) {
+            generarNuevoCodigo();
+        }
+    }, [formData.codigo_grupo]);
 
     const obtenerAuxiliar = async () => {
         try {
@@ -58,7 +65,7 @@ const EditarAuxiliar = () => {
             const token = localStorage.getItem('token');
             const res = await axios.get<GrupoContable[]>('/parametros/grupos-contables', {
                 headers: { Authorization: `Bearer ${token}` },
-                params: { estado: 'ACTIVO' }, // solo los activos
+                params: { estado: 'ACTIVO' },
             });
             setGruposContables(res.data);
         } catch (error) {
@@ -66,11 +73,37 @@ const EditarAuxiliar = () => {
         }
     };
 
+    const generarNuevoCodigo = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.get<{ correlativo: string }>(
+                `/parametros/auxiliares/siguiente-codigo`,
+                {
+                    params: { codigo_grupo: formData.codigo_grupo },
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const nuevoCodigo = `${formData.codigo_grupo}.${res.data.correlativo}`;
+            setFormData((prev) => ({ ...prev, codigo: nuevoCodigo }));
+        } catch (error) {
+            console.error('❌ Error al generar nuevo código:', error);
+        }
+    };
+
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+
+        if (name === 'codigo_grupo') {
+            setCambioGrupo(true);
+            setFormData((prev) => ({ ...prev, codigo_grupo: value, codigo: '' }));
+        } else {
+            setFormData((prev) => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -107,6 +140,22 @@ const EditarAuxiliar = () => {
                     <p>Cargando datos...</p>
                 ) : (
                     <form onSubmit={handleSubmit}>
+                        <select
+                            id="codigo_grupo"
+                            name="codigo_grupo"
+                            className="form-select"
+                            value={formData.codigo_grupo}
+                            disabled
+                        >
+                            <option value="">-- Selecciona un grupo contable --</option>
+                            {gruposContables.map((grupo) => (
+                                <option key={grupo.id} value={grupo.codigo}>
+                                    {grupo.codigo} - {grupo.descripcion}
+                                </option>
+                            ))}
+                        </select>
+
+
                         <div className="mb-3">
                             <label htmlFor="codigo" className="form-label">Código</label>
                             <input
@@ -115,8 +164,7 @@ const EditarAuxiliar = () => {
                                 name="codigo"
                                 className="form-control"
                                 value={formData.codigo}
-                                onChange={handleChange}
-                                required
+                                readOnly
                             />
                         </div>
 
@@ -130,25 +178,6 @@ const EditarAuxiliar = () => {
                                 onChange={handleChange}
                                 required
                             />
-                        </div>
-
-                        <div className="mb-3">
-                            <label htmlFor="codigo_grupo" className="form-label">Grupo Contable</label>
-                            <select
-                                id="codigo_grupo"
-                                name="codigo_grupo"
-                                className="form-select"
-                                value={formData.codigo_grupo}
-                                onChange={handleChange}
-                                required
-                            >
-                                <option value="">-- Selecciona un grupo contable --</option>
-                                {gruposContables.map((grupo) => (
-                                    <option key={grupo.id} value={grupo.codigo}>
-                                        {grupo.codigo} - {grupo.descripcion}
-                                    </option>
-                                ))}
-                            </select>
                         </div>
 
                         <div className="mb-3">

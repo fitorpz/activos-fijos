@@ -9,11 +9,10 @@ export interface Usuario {
     rol?: string;
 }
 
-export interface Auxiliar {
+export interface Cargo {
     id: number;
     codigo: string;
     descripcion: string;
-    codigo_grupo: string;
     estado: 'ACTIVO' | 'INACTIVO';
     creado_por: Usuario;
     created_at: string;
@@ -21,48 +20,54 @@ export interface Auxiliar {
     updated_at?: string | null;
 }
 
-const Auxiliares = () => {
-    const [auxiliares, setAuxiliares] = useState<Auxiliar[]>([]);
+const Cargos = () => {
+    const [cargos, setCargos] = useState<Cargo[]>([]);
     const [cargando, setCargando] = useState(true);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
     const navigate = useNavigate();
 
     useEffect(() => {
-        obtenerAuxiliares();
+        obtenerCargos();
     }, [estadoFiltro]);
 
-    const obtenerAuxiliares = async () => {
+    const obtenerCargos = async () => {
         const token = localStorage.getItem('token');
         try {
-            const res = await axios.get<Auxiliar[]>('/parametros/auxiliares', {
-                params: {
-                    estado:
-                        estadoFiltro === 'activos'
-                            ? 'ACTIVO'
-                            : estadoFiltro === 'inactivos'
-                                ? 'INACTIVO'
-                                : 'todos',
+            const res = await axios.get<Cargo[]>('/parametros/cargos', {
+                params: estadoFiltro
+                    ? {
+                        estado:
+                            estadoFiltro === 'activos'
+                                ? 'ACTIVO'
+                                : estadoFiltro === 'inactivos'
+                                    ? 'INACTIVO'
+                                    : 'todos',
+                    }
+                    : {},
+                headers: {
+                    Authorization: `Bearer ${token}`,
                 },
-                headers: { Authorization: `Bearer ${token}` },
             });
-            setAuxiliares(res.data);
+            setCargos(res.data);
         } catch (error) {
-            console.error('Error al obtener auxiliares:', error);
+            console.error('Error al obtener cargos:', error);
         } finally {
             setCargando(false);
         }
     };
 
     const cambiarEstado = async (id: number) => {
-        if (!window.confirm('¿Estás seguro de cambiar el estado de este auxiliar?')) return;
+        if (!window.confirm('¿Estás seguro de cambiar el estado de este cargo?')) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`/parametros/auxiliares/${id}/cambiar-estado`, null, {
-                headers: { Authorization: `Bearer ${token}` },
+            await axios.put(`/parametros/cargos/${id}/cambiar-estado`, null, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
             });
-            obtenerAuxiliares();
+            obtenerCargos();
         } catch (error) {
-            console.error('Error al cambiar estado:', error);
+            console.error('Error al cambiar el estado del cargo:', error);
         }
     };
 
@@ -77,7 +82,7 @@ const Auxiliares = () => {
 
         try {
             const response = await axios.get(
-                `/parametros/auxiliares/exportar/pdf?estado=${estadoSeleccionado}`,
+                `/parametros/cargos/exportar/pdf?estado=${estadoSeleccionado}`,
                 {
                     responseType: 'blob',
                     headers: { Authorization: `Bearer ${token}` },
@@ -97,16 +102,16 @@ const Auxiliares = () => {
         <div className="container mt-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h4 className="mb-0">Auxiliares</h4>
-                    <p className="text-muted small">Gestión de auxiliares registrados</p>
+                    <h4 className="mb-0">Cargos</h4>
+                    <p className="text-muted small">Gestión de cargos registrados</p>
                 </div>
 
                 <div className="d-flex flex-wrap align-items-center gap-2">
                     <button
                         className="btn btn-primary"
-                        onClick={() => navigate('/parametros/auxiliares/registrar')}
+                        onClick={() => navigate('/parametros/cargos/registrar')}
                     >
-                        <i className="bi bi-plus-lg me-1"></i> Nuevo Auxiliar
+                        <i className="bi bi-plus-lg me-1"></i> Nuevo Cargo
                     </button>
 
                     <button className="btn btn-outline-success" onClick={exportarPDF}>
@@ -135,7 +140,6 @@ const Auxiliares = () => {
                 </div>
             </div>
 
-
             <div className="table-responsive">
                 <table className="table table-bordered table-hover align-middle">
                     <thead className="table-light">
@@ -143,7 +147,6 @@ const Auxiliares = () => {
                             <th>Nro.</th>
                             <th>Código</th>
                             <th>Descripción</th>
-                            <th>Código Grupo</th>
                             <th>Estado</th>
                             <th>Creado por</th>
                             <th>Fecha de Registro</th>
@@ -155,45 +158,42 @@ const Auxiliares = () => {
                     <tbody>
                         {cargando ? (
                             <tr>
-                                <td colSpan={10} className="text-center">
-                                    Cargando datos...
-                                </td>
+                                <td colSpan={9} className="text-center">Cargando datos...</td>
                             </tr>
-                        ) : auxiliares.length > 0 ? (
-                            auxiliares.map((aux, index) => (
-                                <tr key={aux.id}>
+                        ) : cargos.length > 0 ? (
+                            cargos.map((cargo, index) => (
+                                <tr key={cargo.id}>
                                     <td>{index + 1}</td>
-                                    <td>{aux.codigo}</td>
-                                    <td>{aux.descripcion}</td>
-                                    <td>{aux.codigo_grupo || '—'}</td>
-                                    <td>{aux.estado}</td>
+                                    <td>{cargo.codigo}</td>
+                                    <td>{cargo.descripcion}</td>
+                                    <td>{cargo.estado}</td>
                                     <td>
-                                        {aux.creado_por
-                                            ? `${aux.creado_por.nombre}${aux.creado_por.rol ? ` (${aux.creado_por.rol})` : ''}`
+                                        {cargo.creado_por
+                                            ? `${cargo.creado_por.nombre}${cargo.creado_por.rol ? ` (${cargo.creado_por.rol})` : ''}`
                                             : '—'}
                                     </td>
-                                    <td>{new Date(aux.created_at).toLocaleDateString('es-BO')}</td>
+                                    <td>{new Date(cargo.created_at).toLocaleDateString('es-BO')}</td>
                                     <td>
-                                        {aux.actualizado_por
-                                            ? `${aux.actualizado_por.nombre}${aux.actualizado_por.rol ? ` (${aux.actualizado_por.rol})` : ''}`
+                                        {cargo.actualizado_por
+                                            ? `${cargo.actualizado_por.nombre}${cargo.actualizado_por.rol ? ` (${cargo.actualizado_por.rol})` : ''}`
                                             : '—'}
                                     </td>
                                     <td>
-                                        {aux.updated_at
-                                            ? new Date(aux.updated_at).toLocaleDateString('es-BO')
+                                        {cargo.updated_at
+                                            ? new Date(cargo.updated_at).toLocaleDateString('es-BO')
                                             : '—'}
                                     </td>
                                     <td>
                                         <button
                                             className="btn btn-sm btn-warning me-2"
-                                            onClick={() => navigate(`/parametros/auxiliares/editar/${aux.id}`)}
+                                            onClick={() => navigate(`/parametros/cargos/editar/${cargo.id}`)}
                                         >
                                             <i className="bi bi-pencil-square"></i>
                                         </button>
                                         <button
-                                            className={`btn btn-sm ${aux.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
-                                            title={aux.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
-                                            onClick={() => cambiarEstado(aux.id)}
+                                            className={`btn btn-sm ${cargo.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
+                                            title={cargo.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
+                                            onClick={() => cambiarEstado(cargo.id)}
                                         >
                                             <i className="bi bi-arrow-repeat"></i>
                                         </button>
@@ -202,7 +202,7 @@ const Auxiliares = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={10} className="text-center">No hay registros.</td>
+                                <td colSpan={9} className="text-center">No hay registros.</td>
                             </tr>
                         )}
                     </tbody>
@@ -212,4 +212,4 @@ const Auxiliares = () => {
     );
 };
 
-export default Auxiliares;
+export default Cargos;
