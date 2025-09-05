@@ -2,114 +2,147 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
 
-interface Cargo {
+interface CargoData {
+    area: string;
+    unidad_organizacional: string;
+    ambiente: string;
     codigo: string;
-    descripcion: string;
+    cargo: string;
     estado: 'ACTIVO' | 'INACTIVO';
 }
 
 const EditarCargos = () => {
-    const { id } = useParams<{ id: string }>();
+    const { id } = useParams();
     const navigate = useNavigate();
 
-    const [formData, setFormData] = useState<Cargo>({
+    const [formData, setFormData] = useState<CargoData>({
+        area: '',
+        unidad_organizacional: '',
+        ambiente: '',
         codigo: '',
-        descripcion: '',
+        cargo: '',
         estado: 'ACTIVO',
     });
 
     const [cargando, setCargando] = useState(true);
+    const [guardando, setGuardando] = useState(false);
+    const [mensajeError, setMensajeError] = useState<string | null>(null);
 
-    useEffect(() => {
-        obtenerCargo();
-    }, []);
-
-    const obtenerCargo = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await axios.get<Cargo>(`/parametros/cargos/${id}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            setFormData({
-                codigo: res.data.codigo,
-                descripcion: res.data.descripcion,
-                estado: res.data.estado,
-            });
-
-            setCargando(false);
-        } catch (error) {
-            console.error('❌ Error al obtener cargo:', error);
-            alert('Ocurrió un error al obtener los datos del cargo.');
-            navigate('/parametros/cargos');
-        }
+    const authHeaders = () => {
+        const token = localStorage.getItem('token');
+        return { Authorization: `Bearer ${token}` };
     };
 
-    const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-    ) => {
+    useEffect(() => {
+        const cargarCargo = async () => {
+            try {
+                const res = await axios.get<CargoData>(`/parametros/cargos/${id}`, {
+                    headers: authHeaders(),
+                });
+
+                setFormData({
+                    area: res.data.area,
+                    unidad_organizacional: res.data.unidad_organizacional,
+                    ambiente: res.data.ambiente,
+                    codigo: res.data.codigo,
+                    cargo: res.data.cargo,
+                    estado: res.data.estado || 'ACTIVO',
+                });
+            } catch (error) {
+                console.error('Error al cargar cargo:', error);
+                setMensajeError('No se pudo cargar el cargo.');
+            } finally {
+                setCargando(false);
+            }
+        };
+
+        cargarCargo();
+    }, [id]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setGuardando(true);
+        setMensajeError(null);
+
         try {
-            const token = localStorage.getItem('token');
-            await axios.put(`/parametros/cargos/${id}`, formData, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            await axios.put(
+                `/parametros/cargos/${id}`,
+                {
+                    cargo: formData.cargo,
+                    estado: formData.estado,
+                },
+                { headers: authHeaders() }
+            );
+
             alert('✅ Cargo actualizado correctamente');
             navigate('/parametros/cargos');
         } catch (error) {
-            console.error('❌ Error al actualizar cargo:', error);
-            alert('Ocurrió un error al actualizar el cargo.');
+            console.error('Error al actualizar cargo:', error);
+            setMensajeError('Ocurrió un error al actualizar el cargo.');
+        } finally {
+            setGuardando(false);
         }
     };
 
     if (cargando) {
-        return <div className="container mt-4">Cargando...</div>;
+        return <div className="container mt-4">Cargando datos...</div>;
     }
 
     return (
         <div className="container mt-4">
             <div className="card">
-                <div className="card-header bg-primary text-white">
+                <div className="card-header bg-warning text-dark">
                     <h5 className="mb-0">Editar Cargo</h5>
                 </div>
+
                 <div className="card-body">
+                    {mensajeError && <div className="alert alert-danger">{mensajeError}</div>}
+
                     <form onSubmit={handleSubmit}>
+                        {/* Campos no editables */}
                         <div className="mb-3">
-                            <label htmlFor="codigo" className="form-label">Código</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                id="codigo"
-                                name="codigo"
-                                value={formData.codigo}
-                                disabled
-                            />
+                            <label className="form-label">Área</label>
+                            <input type="text" className="form-control" value={formData.area} disabled />
                         </div>
 
                         <div className="mb-3">
-                            <label htmlFor="descripcion" className="form-label">Descripción</label>
+                            <label className="form-label">Unidad Organizacional</label>
+                            <input type="text" className="form-control" value={formData.unidad_organizacional} disabled />
+                        </div>
+
+                        <div className="mb-3">
+                            <label className="form-label">Ambiente</label>
+                            <input type="text" className="form-control" value={formData.ambiente} disabled />
+                        </div>
+
+                        <div className="mb-3">
+                            <label className="form-label">Código</label>
+                            <input type="text" className="form-control" value={formData.codigo} disabled />
+                        </div>
+
+                        {/* Campos editables */}
+                        <div className="mb-3">
+                            <label className="form-label">Descripción / Cargo</label>
                             <input
                                 type="text"
                                 className="form-control"
-                                id="descripcion"
-                                name="descripcion"
-                                value={formData.descripcion}
+                                name="cargo"
+                                value={formData.cargo}
                                 onChange={handleChange}
                                 required
                             />
                         </div>
 
                         <div className="mb-3">
-                            <label htmlFor="estado" className="form-label">Estado</label>
+                            <label className="form-label">Estado</label>
                             <select
-                                id="estado"
-                                name="estado"
                                 className="form-select"
+                                name="estado"
                                 value={formData.estado}
                                 onChange={handleChange}
                                 required
@@ -119,15 +152,12 @@ const EditarCargos = () => {
                             </select>
                         </div>
 
+                        {/* Botones */}
                         <div className="d-flex justify-content-end">
-                            <button type="submit" className="btn btn-primary">
-                                <i className="bi bi-save me-2"></i> Guardar Cambios
+                            <button type="submit" className="btn btn-primary" disabled={guardando}>
+                                {guardando ? 'Guardando...' : 'Guardar'}
                             </button>
-                            <button
-                                type="button"
-                                className="btn btn-secondary ms-2"
-                                onClick={() => navigate('/parametros/cargos')}
-                            >
+                            <button type="button" className="btn btn-secondary ms-2" onClick={() => navigate('/parametros/cargos')}>
                                 Cancelar
                             </button>
                         </div>

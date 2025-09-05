@@ -23,11 +23,14 @@ interface Ambiente {
 const RegistroCargos = () => {
     const [formData, setFormData] = useState({
         codigo: '',
-        descripcion: '',
+        cargo: '',
         estado: 'ACTIVO',
         area_id: '',
+        area: '',
         unidad_organizacional_id: '',
+        unidad_organizacional: '',
         ambiente_id: '',
+        ambiente: '',
     });
 
     const [areas, setAreas] = useState<Area[]>([]);
@@ -95,11 +98,15 @@ const RegistroCargos = () => {
         const { name, value } = e.target;
 
         if (name === 'area_id') {
+            const areaSeleccionada = areas.find(area => area.id.toString() === value);
             setFormData(prev => ({
                 ...prev,
                 area_id: value,
+                area: areaSeleccionada?.codigo || '',
                 unidad_organizacional_id: '',
+                unidad_organizacional: '',
                 ambiente_id: '',
+                ambiente: '',
                 codigo: '',
             }));
             setUnidades([]);
@@ -110,10 +117,13 @@ const RegistroCargos = () => {
         }
 
         if (name === 'unidad_organizacional_id') {
+            const unidadSeleccionada = unidades.find(unidad => unidad.id.toString() === value);
             setFormData(prev => ({
                 ...prev,
                 unidad_organizacional_id: value,
+                unidad_organizacional: unidadSeleccionada?.codigo || '',
                 ambiente_id: '',
+                ambiente: '',
                 codigo: '',
             }));
             setAmbienteInput('');
@@ -127,7 +137,7 @@ const RegistroCargos = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.area_id || !formData.unidad_organizacional_id || !formData.ambiente_id) {
+        if (!formData.area || !formData.unidad_organizacional || !formData.ambiente) {
             alert('Por favor selecciona Área, Unidad y Ambiente.');
             return;
         }
@@ -136,12 +146,15 @@ const RegistroCargos = () => {
             await axios.post(
                 '/parametros/cargos',
                 {
-                    codigo: formData.codigo,
-                    descripcion: formData.descripcion,
+                    area: formData.area,
+                    unidad_organizacional: formData.unidad_organizacional,
+                    ambiente: formData.ambiente,
                     estado: formData.estado,
-                    area_id: Number(formData.area_id),
-                    unidad_organizacional_id: Number(formData.unidad_organizacional_id),
-                    ambiente_id: Number(formData.ambiente_id),
+                    codigo: formData.codigo,
+                    cargo: formData.cargo,
+                    personal1: '',
+                    personal2: '',
+                    personal3: '',
                 },
                 { headers: authHeaders() }
             );
@@ -162,7 +175,6 @@ const RegistroCargos = () => {
                 </div>
                 <div className="card-body">
                     <form onSubmit={handleSubmit}>
-
                         {/* Área */}
                         <div className="mb-3">
                             <label className="form-label">Área</label>
@@ -230,6 +242,7 @@ const RegistroCargos = () => {
                                                 setFormData(prev => ({
                                                     ...prev,
                                                     ambiente_id: ambiente.id.toString(),
+                                                    ambiente: ambiente.codigo,
                                                 }));
                                                 setAmbienteInput(`${ambiente.codigo} - ${ambiente.descripcion}`);
                                                 setMostrarSugerencias(false);
@@ -266,14 +279,14 @@ const RegistroCargos = () => {
                             {mensajeCodigo && <div className="text-danger mt-1">{mensajeCodigo}</div>}
                         </div>
 
-                        {/* Descripción */}
+                        {/* Cargo (antes descripción) */}
                         <div className="mb-3">
-                            <label className="form-label">Descripción</label>
+                            <label className="form-label">Descripción / Cargo</label>
                             <input
                                 type="text"
                                 className="form-control"
-                                name="descripcion"
-                                value={formData.descripcion}
+                                name="cargo"
+                                value={formData.cargo}
                                 onChange={handleChange}
                                 required
                             />
@@ -299,11 +312,14 @@ const RegistroCargos = () => {
                             <button type="submit" className="btn btn-primary">
                                 <i className="bi bi-save me-2"></i> Guardar
                             </button>
-                            <button type="button" className="btn btn-secondary ms-2" onClick={() => navigate('/parametros/cargos')}>
+                            <button
+                                type="button"
+                                className="btn btn-secondary ms-2"
+                                onClick={() => navigate('/parametros/cargos')}
+                            >
                                 Cancelar
                             </button>
                         </div>
-
                     </form>
                 </div>
             </div>

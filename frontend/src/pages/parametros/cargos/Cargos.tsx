@@ -18,6 +18,8 @@ export interface Cargo {
     created_at: string;
     actualizado_por?: Usuario | null;
     updated_at?: string | null;
+    cargo: string;
+
 }
 
 const Cargos = () => {
@@ -165,7 +167,7 @@ const Cargos = () => {
                                 <tr key={cargo.id}>
                                     <td>{index + 1}</td>
                                     <td>{cargo.codigo}</td>
-                                    <td>{cargo.descripcion}</td>
+                                    <td>{cargo.cargo}</td>
                                     <td>{cargo.estado}</td>
                                     <td>
                                         {cargo.creado_por
