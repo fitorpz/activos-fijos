@@ -128,21 +128,27 @@ export class UnidadesOrganizacionalesService {
     });
   }
 
-  async buscarPorTexto(area_id: number, q: string): Promise<UnidadOrganizacional[]> {
-    const query = this.unidadRepo.createQueryBuilder('unidad')
-      .leftJoinAndSelect('unidad.area', 'area')
-      .where('unidad.area_id = :area_id', { area_id })
-      .andWhere('unidad.estado = :estado', { estado: 'ACTIVO' })
-      .andWhere('unidad.deleted_at IS NULL');
+  async buscar(params: { q?: string; estado?: string; area_id?: number }) {
+    const { q, estado, area_id } = params;
 
-    if (q && q.trim() !== '') {
-      query.andWhere(
-        '(LOWER(unidad.descripcion) LIKE LOWER(:q) OR LOWER(unidad.codigo) LIKE LOWER(:q))',
-        { q: `%${q.trim()}%` }
-      );
+    const qb = this.unidadRepo.createQueryBuilder('u')
+      .leftJoinAndSelect('u.area', 'area') // si tienes relación
+      .orderBy('u.codigo', 'ASC');
+
+    if (estado && estado !== 'todos') {
+      qb.andWhere('u.estado = :estado', { estado: estado.toUpperCase() });
     }
 
-    return query.orderBy('unidad.descripcion', 'ASC').take(15).getMany(); // limitar resultados
-  }
+    if (typeof area_id === 'number') {
+      qb.andWhere('u.area_id = :area_id', { area_id });  // 👈 filtro por área
+    }
 
+    if (q && q.trim() !== '') {
+      qb.andWhere('(LOWER(u.codigo) LIKE :t OR LOWER(u.descripcion) LIKE :t)', {
+        t: `%${q.toLowerCase()}%`,
+      });
+    }
+
+    return qb.getMany();
+  }
 }

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Area } from './entities/areas.entity';
@@ -17,24 +17,31 @@ export class AreasService {
     private readonly usuarioRepo: Repository<Usuario>,
   ) { }
 
-  // Crear una nueva area
-  async create(
-    dto: CreateAreasDto,
-    userId: number,
-  ): Promise<Area> {
-    const usuario = await this.usuarioRepo.findOneBy({ id: userId });
+  async existeCodigo(codigo: string): Promise<boolean> {
+    const existente = await this.direccionRepo.findOne({ where: { codigo } });
+    return !!existente;
+  }
 
+  // Crear una nueva area
+  async create(dto: CreateAreasDto, userId: number): Promise<Area> {
+    const usuario = await this.usuarioRepo.findOneBy({ id: userId });
     if (!usuario) {
       throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
     }
 
-    const nuevaDireccion = this.direccionRepo.create({
+    // ✅ Verifica si ya existe un área con el mismo código
+    const yaExiste = await this.direccionRepo.findOne({ where: { codigo: dto.codigo } });
+    if (yaExiste) {
+      throw new BadRequestException(`Ya existe un área con el código '${dto.codigo}'`);
+    }
+
+    const nuevaArea = this.direccionRepo.create({
       ...dto,
-      estado: dto.estado ?? 'ACTIVO', // valor por defecto si no se manda
+      estado: dto.estado ?? 'ACTIVO',
       creado_por: usuario,
     });
 
-    return this.direccionRepo.save(nuevaDireccion);
+    return this.direccionRepo.save(nuevaArea);
   }
 
   // Obtener todas las direcciones
@@ -48,6 +55,7 @@ export class AreasService {
     if (estado && estado !== 'todos') {
       query.andWhere('area.estado = :estado', { estado: estado.toUpperCase() });
     }
+
 
     return query.getMany();
   }
@@ -74,29 +82,40 @@ export class AreasService {
     dto: UpdateAreasDto,
     userId: number,
   ): Promise<Area> {
-    const direccion = await this.findOne(id);
-
+    const area = await this.findOne(id);
     const usuario = await this.usuarioRepo.findOneBy({ id: userId });
     if (!usuario) {
       throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
     }
 
-    if (dto.codigo !== undefined) {
-      direccion.codigo = dto.codigo;
+    // ✅ Si se cambió el código, verificar que no exista en otra área
+    if (dto.codigo && dto.codigo !== area.codigo) {
+      const existente = await this.direccionRepo.findOne({
+        where: { codigo: dto.codigo },
+      });
+
+      if (existente && existente.id !== id) {
+        throw new BadRequestException(
+          `Ya existe un área con el código '${dto.codigo}'`
+        );
+      }
+
+      area.codigo = dto.codigo;
     }
 
     if (dto.descripcion !== undefined) {
-      direccion.descripcion = dto.descripcion;
+      area.descripcion = dto.descripcion;
     }
 
     if (dto.estado !== undefined) {
-      direccion.estado = dto.estado;
+      area.estado = dto.estado;
     }
 
-    direccion.actualizado_por = usuario;
+    area.actualizado_por = usuario;
 
-    return this.direccionRepo.save(direccion);
+    return this.direccionRepo.save(area);
   }
+
 
   // Eliminar (soft delete)
   async remove(id: number): Promise<{ message: string }> {

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
 import AsyncSelect from 'react-select/async';
 
-
 interface Area {
     id: number;
     codigo: string;
@@ -16,6 +15,12 @@ interface UnidadOrganizacional {
     descripcion: string;
     area_id: number;
 }
+
+type OptionUnidad = {
+    value: string;          // id como string
+    label: string;          // "codigo - descripcion"
+    area_id: number;        // 👈 extra para validar
+};
 
 const RegistroAmbientes = () => {
     const [formData, setFormData] = useState({
@@ -31,29 +36,20 @@ const RegistroAmbientes = () => {
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    // ✅ Cargar áreas al iniciar
-    useEffect(() => {
-        cargarAreas();
-    }, []);
+    useEffect(() => { cargarAreas(); }, []);
 
-    // ✅ Cargar unidades al seleccionar área
     useEffect(() => {
         if (formData.area_id) {
-            cargarUnidadesPorArea(parseInt(formData.area_id));
+            cargarUnidadesPorArea(parseInt(formData.area_id, 10));
         } else {
             setUnidades([]);
-            setFormData(prev => ({
-                ...prev,
-                unidad_organizacional_id: '',
-                codigo: ''
-            }));
+            setFormData(prev => ({ ...prev, unidad_organizacional_id: '', codigo: '' }));
         }
     }, [formData.area_id]);
 
-    // ✅ Generar código al seleccionar unidad
     useEffect(() => {
         if (formData.unidad_organizacional_id) {
-            generarCodigo(parseInt(formData.unidad_organizacional_id));
+            generarCodigo(parseInt(formData.unidad_organizacional_id, 10));
         } else {
             setFormData(prev => ({ ...prev, codigo: '' }));
         }
@@ -61,85 +57,82 @@ const RegistroAmbientes = () => {
 
     const cargarAreas = async () => {
         try {
-            const res = await axios.get<Area[]>('/parametros/areas', {
-                params: { estado: 'ACTIVO' },
-            });
+            const res = await axios.get<Area[]>('/parametros/areas', { params: { estado: 'ACTIVO' } });
             setAreas(res.data);
-        } catch (error) {
-            console.error('❌ Error al cargar áreas:', error);
+        } catch (e) {
+            console.error('❌ Error al cargar áreas:', e);
         }
     };
 
     const cargarUnidadesPorArea = async (areaId: number) => {
         try {
             const res = await axios.get<UnidadOrganizacional[]>('/parametros/unidades-organizacionales', {
-                params: { estado: 'ACTIVO', area_id: areaId },
+                params: { estado: 'ACTIVO', area_id: areaId },   // 👈 filtra por área
             });
             setUnidades(res.data);
-        } catch (error) {
-            console.error('❌ Error al cargar unidades organizacionales:', error);
+        } catch (e) {
+            console.error('❌ Error al cargar unidades organizacionales:', e);
         }
     };
 
-    const buscarUnidadesAsync = async (inputValue: string) => {
+    // 👉 convierte una unidad en opción de AsyncSelect
+    const toOption = (u: UnidadOrganizacional): OptionUnidad => ({
+        value: String(u.id),
+        label: `${u.codigo} - ${u.descripcion}`,
+        area_id: u.area_id,
+    });
+
+    // 🔎 búsqueda remota + filtro por área (server-side)
+    const buscarUnidadesAsync = async (inputValue: string): Promise<OptionUnidad[]> => {
         if (!formData.area_id) return [];
 
         try {
             const res = await axios.get<UnidadOrganizacional[]>('/parametros/unidades-organizacionales/buscar', {
                 params: {
                     estado: 'ACTIVO',
-                    area_id: formData.area_id,
-                    q: inputValue
-                }
+                    area_id: parseInt(formData.area_id, 10),   // 👈 siempre enviar area_id
+                    q: inputValue || '',
+                },
             });
 
-            return res.data.map((unidad) => ({
-                value: unidad.id.toString(),
-                label: `${unidad.codigo} - ${unidad.descripcion}`
-            }));
-        } catch (error) {
-            console.error('❌ Error al buscar unidades organizacionales:', error);
+            // ⚠️ defensa extra: si el backend no filtrara, filtramos aquí:
+            const areaIdNum = parseInt(formData.area_id, 10);
+            const filtradas = res.data.filter(u => u.area_id === areaIdNum);
+
+            return filtradas.map(toOption);
+        } catch (e) {
+            console.error('❌ Error al buscar unidades organizacionales:', e);
             return [];
         }
     };
 
-
     const generarCodigo = async (unidadId: number) => {
-        console.log('🧪 Enviando unidad_id =', unidadId);
-
         try {
             const res = await axios.get<{ total: number }>('/parametros/ambientes/contar', {
-                params: { unidad_id: unidadId }
+                params: { unidad_id: unidadId },
             });
-
-            console.log('📥 Respuesta del backend:', res.data);
 
             const unidad = unidades.find(u => u.id === unidadId);
             if (!unidad) return;
 
             const total = res.data.total || 0;
-            const correlativo = (total + 1).toString().padStart(2, '0');
+            const correlativo = String(total + 1).padStart(2, '0');
             const codigoGenerado = `${unidad.codigo}.${correlativo}`;
 
-            setFormData(prev => ({
-                ...prev,
-                codigo: codigoGenerado
-            }));
-        } catch (error) {
-            console.error('❌ Error al generar código automático:', error);
+            setFormData(prev => ({ ...prev, codigo: codigoGenerado }));
+        } catch (e) {
+            console.error('❌ Error al generar código automático:', e);
         }
     };
-
-
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({
+        setFormData(prev => ({
             ...prev,
             [name]: value,
-            ...(name === 'area_id' && { unidad_organizacional_id: '', codigo: '' }) // resetear dependientes
+            ...(name === 'area_id' ? { unidad_organizacional_id: '', codigo: '' } : {}),
         }));
     };
 
@@ -159,19 +152,25 @@ const RegistroAmbientes = () => {
             const payload = {
                 codigo: codigo.trim(),
                 descripcion: descripcion.trim(),
-                unidad_organizacional_id: parseInt(unidad_organizacional_id),
+                unidad_organizacional_id: parseInt(unidad_organizacional_id, 10),
             };
 
             await axios.post('/parametros/ambientes', payload);
             alert('✅ Ambiente registrado con éxito.');
             navigate('/parametros/ambientes');
-        } catch (error: any) {
-            console.error('❌ Error al registrar ambiente:', error);
-            setError(error?.response?.data?.message || 'Error inesperado al registrar.');
+        } catch (e: any) {
+            console.error('❌ Error al registrar ambiente:', e);
+            setError(e?.response?.data?.message || 'Error inesperado al registrar.');
         } finally {
             setCargando(false);
         }
     };
+
+    const selectedOption: OptionUnidad | null = (() => {
+        if (!formData.unidad_organizacional_id) return null;
+        const u = unidades.find(x => String(x.id) === formData.unidad_organizacional_id);
+        return u ? toOption(u) : null;
+    })();
 
     return (
         <div className="container mt-4">
@@ -203,34 +202,34 @@ const RegistroAmbientes = () => {
                 {/* Unidad Organizacional */}
                 <div className="mb-3">
                     <label className="form-label">Unidad Organizacional</label>
-                    <AsyncSelect
-                        cacheOptions
+                    <AsyncSelect<OptionUnidad, false>
+                        key={formData.area_id || 'no-area'}         // 👈 resetea caché al cambiar área
+                        cacheOptions={false}                         // 👈 evita resultados viejos
                         loadOptions={buscarUnidadesAsync}
-                        defaultOptions
+                        defaultOptions={unidades.map(toOption)}     // 👈 lista inicial solo de esa área
                         isDisabled={!formData.area_id}
-                        placeholder="Escriba para buscar..."
-                        value={
-                            formData.unidad_organizacional_id
-                                ? {
-                                    value: formData.unidad_organizacional_id,
-                                    label:
-                                        unidades.find(u => u.id.toString() === formData.unidad_organizacional_id)
-                                            ?.codigo +
-                                        ' - ' +
-                                        unidades.find(u => u.id.toString() === formData.unidad_organizacional_id)
-                                            ?.descripcion,
-                                }
-                                : null
-                        }
+                        placeholder={formData.area_id ? 'Escriba para buscar...' : 'Seleccione un área primero'}
+                        value={selectedOption}
                         onChange={(opcion) => {
-                            setFormData((prev) => ({
-                                ...prev,
-                                unidad_organizacional_id: opcion?.value || '',
-                            }));
+                            if (!opcion) {
+                                setFormData(prev => ({ ...prev, unidad_organizacional_id: '', codigo: '' }));
+                                return;
+                            }
+                            // 🚧 defensa extra: evita seleccionar una unidad de otra área
+                            const areaIdNum = parseInt(formData.area_id, 10);
+                            if (opcion.area_id !== areaIdNum) {
+                                alert('La unidad seleccionada no pertenece al área elegida.');
+                                setFormData(prev => ({ ...prev, unidad_organizacional_id: '', codigo: '' }));
+                                return;
+                            }
+                            setFormData(prev => ({ ...prev, unidad_organizacional_id: opcion.value }));
                         }}
+                        isClearable
+                        noOptionsMessage={() =>
+                            formData.area_id ? 'Sin resultados' : 'Seleccione un área primero'
+                        }
                     />
                 </div>
-
 
                 {/* Código generado */}
                 <div className="mb-3">
@@ -258,20 +257,11 @@ const RegistroAmbientes = () => {
                     />
                 </div>
 
-                {/* Botones */}
                 <div className="d-flex justify-content-end">
                     <button type="submit" className="btn btn-primary" disabled={cargando}>
-                        {cargando ? 'Guardando...' : (
-                            <>
-                                <i className="bi bi-save me-2"></i>Guardar
-                            </>
-                        )}
+                        {cargando ? 'Guardando...' : (<><i className="bi bi-save me-2"></i>Guardar</>)}
                     </button>
-                    <button
-                        type="button"
-                        className="btn btn-secondary ms-2"
-                        onClick={() => navigate('/parametros/ambientes')}
-                    >
+                    <button type="button" className="btn btn-secondary ms-2" onClick={() => navigate('/parametros/ambientes')}>
                         Cancelar
                     </button>
                 </div>

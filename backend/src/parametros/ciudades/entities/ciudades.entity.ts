@@ -9,19 +9,19 @@ import {
 } from 'typeorm';
 import { Usuario } from 'src/usuarios/entities/usuario.entity';
 
-@Entity('areas')
-export class Area {
+@Entity('Ciudades')
+export class Ciudad {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
+  @Column()
   codigo: string;
 
   @Column()
   descripcion: string;
 
-  @Column({ type: 'enum', enum: ['ACTIVO', 'INACTIVO'], default: 'ACTIVO' })
-  estado: 'ACTIVO' | 'INACTIVO';
+  @Column({ nullable: false })
+  estado: string;
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
@@ -43,6 +43,6 @@ export class Area {
   @Column({ name: 'actualizado_por_id', nullable: true })
   actualizado_por_id?: number;
 
-  //@Column({ type: 'timestamp', nullable: true })
-  //deleted_at: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  deleted_at: Date;
 }

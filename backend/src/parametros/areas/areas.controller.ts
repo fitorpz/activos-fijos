@@ -10,6 +10,7 @@ import {
   UseGuards,
   Query,
   Req,
+  BadRequestException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -37,6 +38,16 @@ export class AreasController {
     private readonly areaRepository: Repository<Area>,
   ) { }
 
+  @Get('verificar-codigo')
+  async verificarCodigo(@Query('codigo') codigo: string) {
+    if (!codigo || codigo.trim() === '') {
+      throw new BadRequestException('Código requerido');
+    }
+
+    const existe = await this.direccionesService.existeCodigo(codigo);
+    return { disponible: !existe };
+  }
+
   @Post()
   create(
     @Body() dto: CreateAreasDto,
@@ -52,8 +63,6 @@ export class AreasController {
     const estado = req.query.estado as string; // puede ser 'activos' | 'inactivos' | undefined
     return this.direccionesService.findAll(estado);
   }
-
-
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {

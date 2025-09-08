@@ -69,18 +69,16 @@ export class UnidadesOrganizacionalesController {
     const total = await this.unidadesService.contarPorCodigoArea(codigoArea);
     return { total };
   }
-  
-  @Get('buscar')
-  async buscarUnidades(
-    @Query('area_id') area_id: number,
-    @Query('q') q: string
-  ): Promise<UnidadOrganizacional[]> {
-    if (!area_id || isNaN(area_id)) {
-      throw new BadRequestException('El parámetro area_id es requerido y debe ser numérico.');
-    }
 
-    return this.unidadesService.buscarPorTexto(area_id, q);
+  @Get('buscar')
+  async buscar(
+    @Query('q') q: string,
+    @Query('estado') estado?: string,
+    @Query('area_id', ParseIntPipe) area_id?: number, // 👈 obligatorio numérico
+  ) {
+    return this.unidadesService.buscar({ q, estado, area_id });
   }
+
 
 
   @Get(':id')

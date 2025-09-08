@@ -9,16 +9,26 @@ export interface Usuario {
     rol?: string;
 }
 
-export interface Personal {
+interface Personal {
     id: number;
     documento: number;
     ci: string;
     nombre: string;
-    estado: 'ACTIVO' | 'INACTIVO';
-    creado_por: Usuario;
+    profesion?: string;
+    direccion?: string;
+    celular?: string;
+    telefono?: string;
+    email?: string;
+    fecnac?: string;
+    estciv?: number;
+    sexo?: number;
+    estado: string;
+    creado_por?: { nombre: string };
+    creado_por_id: number;
+    actualizado_por?: { nombre: string };
+    actualizado_por_id?: number;
     created_at: string;
-    actualizado_por?: Usuario | null;
-    updated_at?: string | null;
+    updated_at?: string;
 }
 
 const Personales = () => {
@@ -53,6 +63,25 @@ const Personales = () => {
             setCargando(false);
         }
     };
+    const obtenerTextoEstadoCivil = (valor?: number): string => {
+        switch (valor) {
+            case 1: return 'Soltero';
+            case 2: return 'Casado';
+            case 3: return 'Viudo';
+            case 4: return 'Divorciado';
+            case 5: return 'Unión libre';
+            default: return '—';
+        }
+    };
+
+    const obtenerTextoSexo = (valor?: number): string => {
+        switch (valor) {
+            case 1: return 'Masculino';
+            case 2: return 'Femenino';
+            default: return '—';
+        }
+    };
+
 
     const cambiarEstado = async (id: number) => {
         if (!window.confirm('¿Estás seguro de cambiar el estado de este personal?')) return;
@@ -113,8 +142,16 @@ const Personales = () => {
                         <tr>
                             <th>Nro.</th>
                             <th>Nro. Documento</th>
-                            <th>Documento</th>
+                            <th>CI</th>
                             <th>Nombre</th>
+                            <th>Profesión</th>
+                            <th>Dirección</th>
+                            <th>Celular</th>
+                            <th>Teléfono</th>
+                            <th>Email</th>
+                            <th>Fec. Nac.</th>
+                            <th>Estado Civil</th>
+                            <th>Sexo</th>
                             <th>Estado</th>
                             <th>Creado por</th>
                             <th>Fecha de Registro</th>
@@ -126,7 +163,7 @@ const Personales = () => {
                     <tbody>
                         {cargando ? (
                             <tr>
-                                <td colSpan={10} className="text-center">Cargando datos...</td>
+                                <td colSpan={18} className="text-center">Cargando datos...</td>
                             </tr>
                         ) : personales.length > 0 ? (
                             personales.map((p, index) => (
@@ -135,6 +172,14 @@ const Personales = () => {
                                     <td>{p.documento}</td>
                                     <td>{p.ci}</td>
                                     <td>{p.nombre}</td>
+                                    <td>{p.profesion ?? '—'}</td>
+                                    <td>{p.direccion ?? '—'}</td>
+                                    <td>{p.celular ?? '—'}</td>
+                                    <td>{p.telefono ?? '—'}</td>
+                                    <td>{p.email ?? '—'}</td>
+                                    <td>{p.fecnac ?? '—'}</td>
+                                    <td>{obtenerTextoEstadoCivil(p.estciv)}</td>
+                                    <td>{obtenerTextoSexo(p.sexo)}</td>
                                     <td>{p.estado}</td>
                                     <td>{p.creado_por?.nombre ?? '—'}</td>
                                     <td>{new Date(p.created_at).toLocaleDateString('es-BO')}</td>
@@ -159,7 +204,7 @@ const Personales = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={10} className="text-center">No hay registros.</td>
+                                <td colSpan={18} className="text-center">No hay registros.</td>
                             </tr>
                         )}
                     </tbody>
