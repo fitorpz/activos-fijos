@@ -2,80 +2,71 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
 
-const RegistroDireccionAdministrativa = () => {
+const RegistroNucleo = () => {
     const [formData, setFormData] = useState({
         codigo: '',
         descripcion: '',
         estado: 'ACTIVO',
     });
 
-    const [cargando, setCargando] = useState(false);
     const [mensajeCodigo, setMensajeCodigo] = useState<string | null>(null);
+    const [cargando, setCargando] = useState(false);
     const navigate = useNavigate();
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
-
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const verificarCodigoDisponible = async (codigo: string) => {
-
         const codigoNormalizado = codigo.trim().toUpperCase();
-        const res = await axios.get<{ disponible: boolean }>(
-            `/parametros/direcciones-administrativas/verificar-codigo/${codigoNormalizado}`
-        );
 
-        if (!codigo.trim()) {
+        if (!codigoNormalizado) {
             setMensajeCodigo(null);
             return;
         }
 
         try {
-            const res = await axios.get<{ disponible: boolean }>(`/parametros/direcciones-administrativas/verificar-codigo/${codigo.trim()}`);
+            const res = await axios.get<{ disponible: boolean }>(
+                `/parametros/nucleos/verificar-codigo/${codigoNormalizado}`
+            );
+
             if (res.data.disponible) {
                 setMensajeCodigo('✅ Código disponible');
             } else {
                 setMensajeCodigo('❌ El código ya está registrado');
             }
         } catch (error) {
-            console.error('Error al verificar código:', error);
+            console.error('❌ Error al verificar código:', error);
             setMensajeCodigo('❌ Error al verificar el código');
         }
     };
 
-
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        const payload = {
-            codigo: formData.codigo.trim().toUpperCase(), // Normalizado
-            descripcion: formData.descripcion.trim(),
-            estado: formData.estado,
-        };
-
 
         if (mensajeCodigo?.includes('❌')) {
             alert('❌ El código ya está registrado, por favor elige otro.');
             return;
         }
-        setCargando(true);
-        try {
-            const payload = {
-                codigo: formData.codigo.trim(),
-                descripcion: formData.descripcion.trim(),
-                estado: formData.estado,
-            };
 
-            await axios.post('/parametros/direcciones-administrativas', payload);
-            alert('✅ Dirección administrativa registrada con éxito.');
-            navigate('/parametros/direcciones-administrativas');
+        setCargando(true);
+
+        const payload = {
+            codigo: formData.codigo.trim().toUpperCase(),
+            descripcion: formData.descripcion.trim(),
+            estado: formData.estado,
+        };
+
+        try {
+            await axios.post('/parametros/nucleos', payload);
+            alert('✅ Núcleo registrado con éxito.');
+            navigate('/parametros/nucleos');
         } catch (error: any) {
-            console.error('Error al registrar dirección:', error);
-            alert(error?.response?.data?.message || '❌ Error al registrar la dirección.');
+            console.error('❌ Error al registrar núcleo:', error);
+            alert(error?.response?.data?.message || 'Error al registrar el núcleo.');
         } finally {
             setCargando(false);
         }
@@ -84,7 +75,7 @@ const RegistroDireccionAdministrativa = () => {
     return (
         <div className="container mt-4">
             <div className="form-container">
-                <h4 className="mb-4">Nueva Dirección Administrativa</h4>
+                <h4 className="mb-4">Registrar Nuevo Núcleo</h4>
                 <form onSubmit={handleSubmit}>
                     <div className="mb-3">
                         <label htmlFor="codigo" className="form-label">Código</label>
@@ -107,7 +98,6 @@ const RegistroDireccionAdministrativa = () => {
                         )}
                     </div>
 
-
                     <div className="mb-3">
                         <label htmlFor="descripcion" className="form-label">Descripción</label>
                         <textarea
@@ -119,6 +109,7 @@ const RegistroDireccionAdministrativa = () => {
                             required
                         />
                     </div>
+
                     <div className="mb-3">
                         <label htmlFor="estado" className="form-label">Estado</label>
                         <select
@@ -134,14 +125,13 @@ const RegistroDireccionAdministrativa = () => {
                         </select>
                     </div>
 
-
                     <button type="submit" className="btn btn-primary" disabled={cargando}>
                         {cargando ? 'Guardando...' : 'Registrar'}
                     </button>
                     <button
                         type="button"
                         className="btn btn-secondary ms-2"
-                        onClick={() => navigate('/parametros/direcciones-administrativas')}
+                        onClick={() => navigate('/parametros/nucleos')}
                     >
                         Cancelar
                     </button>
@@ -151,4 +141,4 @@ const RegistroDireccionAdministrativa = () => {
     );
 };
 
-export default RegistroDireccionAdministrativa;
+export default RegistroNucleo;

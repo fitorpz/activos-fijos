@@ -23,14 +23,24 @@ export class DireccionesAdministrativasService {
       throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
     }
 
+    const codigoNormalizado = dto.codigo.trim().toUpperCase();
+
+    const existe = await this.direccionRepo.findOneBy({ codigo: codigoNormalizado });
+    if (existe) {
+      throw new Error(`Ya existe una Dirección Administrativa con el código ${dto.codigo}`);
+    }
+
     const nuevaDireccion = this.direccionRepo.create({
       ...dto,
+      codigo: codigoNormalizado, // <-- Se guarda en mayúsculas
       estado: dto.estado ?? 'ACTIVO',
       creado_por: usuario,
     });
 
     return this.direccionRepo.save(nuevaDireccion);
   }
+
+
 
   async findAll(estado?: string): Promise<DireccionAdministrativa[]> {
     const query = this.direccionRepo.createQueryBuilder('direccion')

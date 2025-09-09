@@ -13,6 +13,9 @@ import { GruposContablesModule } from './parametros/grupos-contables/grupos-cont
 import { AuxiliaresModule } from './parametros/auxiliares/auxiliares.module';
 import { PersonalesModule } from './parametros/personal/personales.module';
 import { CargosModule } from './parametros/cargos/cargos.module';
+import { NucleosModule } from './parametros/nucleos/nucleos.module';
+import { CiudadesModule } from './parametros/ciudades/ciudades.module';
+
 
 
 @Module({
@@ -59,6 +62,8 @@ import { CargosModule } from './parametros/cargos/cargos.module';
     AuxiliaresModule,
     PersonalesModule,
     CargosModule,
+    NucleosModule,
+    CiudadesModule,
   ],
 })
 export class AppModule { }

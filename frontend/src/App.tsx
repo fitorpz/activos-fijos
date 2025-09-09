@@ -37,6 +37,13 @@ import EditarPersonal from './pages/parametros/personales/EditarPersonal';
 import ListaCargos from './pages/parametros/cargos/Cargos';
 import RegistroCargos from './pages/parametros/cargos/RegistroCargos';
 import EditarCargos from './pages/parametros/cargos/EditarCargos';
+import Nucleos from './pages/parametros/nucleos/Nucleos';
+import RegistroNucleo from './pages/parametros/nucleos/RegistroNucleo';
+import EditarNucleo from './pages/parametros/nucleos/EditarNucleo';
+import Ciudades from './pages/parametros/ciudades/Ciudades';
+import RegistroCiudad from './pages/parametros/ciudades/RegistroCiudad';
+import EditarCiudad from './pages/parametros/ciudades/EditarCiudad';
+
 
 function App() {
   // ✅ Nueva validación basada en existencia de token
@@ -90,6 +97,12 @@ function App() {
             <Route path="/parametros/cargos" element={<ListaCargos />} />
             <Route path="/parametros/cargos/registrar" element={<RegistroCargos />} />
             <Route path="/parametros/cargos/editar/:id" element={<EditarCargos />} />
+            <Route path="/parametros/nucleos" element={<Nucleos />} />
+            <Route path="/parametros/nucleos/nuevo" element={<RegistroNucleo />} />
+            <Route path="/parametros/nucleos/editar/:id" element={<EditarNucleo />} />
+            <Route path="/parametros/ciudades" element={<Ciudades />} />
+            <Route path="/parametros/ciudades/nuevo" element={<RegistroCiudad />} />
+            <Route path="/parametros/ciudades/editar/:id" element={<EditarCiudad />} />
           </Route>
         )}
 

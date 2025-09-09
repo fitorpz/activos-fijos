@@ -1,4 +1,4 @@
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsIn } from 'class-validator';
 
 export class CreateCiudadesDto {
     @IsNotEmpty()
@@ -6,4 +6,8 @@ export class CreateCiudadesDto {
 
     @IsNotEmpty()
     descripcion: string;
+
+    @IsOptional()
+    @IsIn(['ACTIVO', 'INACTIVO'])
+    estado?: 'ACTIVO' | 'INACTIVO';
 }

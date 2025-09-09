@@ -18,9 +18,14 @@ const parametros = [
         color: 'info',
         items: [
             { label: 'Areas', path: '/parametros/areas' },
-            { label: 'Direcciones Administrativas', path: '/parametros/direcciones-administrativas' },
             { label: 'Unidades Organizacionales', path: '/parametros/unidades-organizacionales' },
             { label: 'Ambientes', path: '/parametros/ambientes' },
+
+            { divider: true },
+
+            { label: 'Direcciones Administrativas', path: '/parametros/direcciones-administrativas' },
+            { label: 'Ciudades', path: '/parametros/ciudades' },
+            { label: 'Nucleos', path: '/parametros/nucleos' },
         ],
     },
     {
@@ -50,16 +55,20 @@ const Parametros = () => {
                                 </div>
                                 <h5 className="card-title text-center">{cat.titulo}</h5>
                                 <ul className="list-unstyled">
-                                    {cat.items.map((item, i) => (
-                                        <li key={i}>
-                                            <button
-                                                className="btn btn-link text-decoration-none p-0"
-                                                onClick={() => navigate(item.path)}
-                                            >
-                                                <i className="bi bi-chevron-right me-2"></i> {item.label}
-                                            </button>
-                                        </li>
-                                    ))}
+                                    {cat.items.map((item, i) =>
+                                        'divider' in item ? (
+                                            <hr key={i} className="my-2" />
+                                        ) : (
+                                            <li key={i}>
+                                                <button
+                                                    className="btn btn-link text-decoration-none p-0"
+                                                    onClick={() => navigate(item.path!)} // el "!" asegura que path existe
+                                                >
+                                                    <i className="bi bi-chevron-right me-2"></i> {item.label}
+                                                </button>
+                                            </li>
+                                        )
+                                    )}
                                 </ul>
                             </div>
                         </div>

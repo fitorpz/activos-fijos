@@ -35,11 +35,13 @@ const RegistroCargos = () => {
 
     const [areas, setAreas] = useState<Area[]>([]);
     const [unidades, setUnidades] = useState<UnidadOrganizacional[]>([]);
-    const [mensajeCodigo, setMensajeCodigo] = useState<string | null>(null);
-
+    const [unidadInput, setUnidadInput] = useState('');
+    const [sugerenciasUnidades, setSugerenciasUnidades] = useState<UnidadOrganizacional[]>([]);
     const [ambienteInput, setAmbienteInput] = useState('');
     const [sugerenciasAmbientes, setSugerenciasAmbientes] = useState<Ambiente[]>([]);
-    const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+    const [mostrarSugerenciasUnidad, setMostrarSugerenciasUnidad] = useState(false);
+    const [mostrarSugerenciasAmbiente, setMostrarSugerenciasAmbiente] = useState(false);
+    const [mensajeCodigo, setMensajeCodigo] = useState<string | null>(null);
     let debounceTimeout: any;
 
     const navigate = useNavigate();
@@ -64,15 +66,21 @@ const RegistroCargos = () => {
         }
     };
 
-    const cargarUnidades = async (areaId: string) => {
+    const buscarUnidades = async (texto: string) => {
+        if (!formData.area_id || texto.trim().length === 0) {
+            setSugerenciasUnidades([]);
+            return;
+        }
+
         try {
             const res = await axios.get<UnidadOrganizacional[]>(
-                `/parametros/unidades-organizacionales?estado=ACTIVO&area_id=${areaId}`,
+                `/parametros/unidades-organizacionales/buscar?q=${texto}&estado=ACTIVO&area_id=${formData.area_id}`,
                 { headers: authHeaders() }
             );
-            setUnidades(res.data);
+            setSugerenciasUnidades(res.data);
         } catch (error) {
-            console.error('Error al cargar unidades organizacionales:', error);
+            console.error('Error al buscar unidades:', error);
+            setSugerenciasUnidades([]);
         }
     };
 
@@ -109,23 +117,8 @@ const RegistroCargos = () => {
                 ambiente: '',
                 codigo: '',
             }));
-            setUnidades([]);
-            setAmbienteInput('');
-            setSugerenciasAmbientes([]);
-            cargarUnidades(value);
-            return;
-        }
-
-        if (name === 'unidad_organizacional_id') {
-            const unidadSeleccionada = unidades.find(unidad => unidad.id.toString() === value);
-            setFormData(prev => ({
-                ...prev,
-                unidad_organizacional_id: value,
-                unidad_organizacional: unidadSeleccionada?.codigo || '',
-                ambiente_id: '',
-                ambiente: '',
-                codigo: '',
-            }));
+            setUnidadInput('');
+            setSugerenciasUnidades([]);
             setAmbienteInput('');
             setSugerenciasAmbientes([]);
             return;
@@ -194,24 +187,49 @@ const RegistroCargos = () => {
                             </select>
                         </div>
 
-                        {/* Unidad */}
-                        <div className="mb-3">
+                        {/* Unidad Organizacional - Autocomplete */}
+                        <div className="mb-3 position-relative">
                             <label className="form-label">Unidad Organizacional</label>
-                            <select
-                                className="form-select"
-                                name="unidad_organizacional_id"
-                                value={formData.unidad_organizacional_id}
-                                onChange={handleChange}
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Buscar unidad organizacional..."
+                                value={unidadInput}
                                 disabled={!formData.area_id}
+                                onChange={(e) => {
+                                    const texto = e.target.value;
+                                    setUnidadInput(texto);
+                                    setMostrarSugerenciasUnidad(true);
+                                    clearTimeout(debounceTimeout);
+                                    debounceTimeout = setTimeout(() => buscarUnidades(texto), 300);
+                                }}
                                 required
-                            >
-                                <option value="">-- Selecciona una unidad --</option>
-                                {unidades.map(unidad => (
-                                    <option key={unidad.id} value={unidad.id}>
-                                        {unidad.codigo} - {unidad.descripcion}
-                                    </option>
-                                ))}
-                            </select>
+                            />
+                            {mostrarSugerenciasUnidad && sugerenciasUnidades.length > 0 && (
+                                <ul className="list-group position-absolute w-100 z-3">
+                                    {sugerenciasUnidades.map((unidad) => (
+                                        <li
+                                            key={unidad.id}
+                                            className="list-group-item list-group-item-action"
+                                            onClick={() => {
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    unidad_organizacional_id: unidad.id.toString(),
+                                                    unidad_organizacional: unidad.codigo,
+                                                    ambiente_id: '',
+                                                    ambiente: '',
+                                                    codigo: '',
+                                                }));
+                                                setUnidadInput(`${unidad.codigo} - ${unidad.descripcion}`);
+                                                setMostrarSugerenciasUnidad(false);
+                                            }}
+                                            style={{ cursor: 'pointer' }}
+                                        >
+                                            {unidad.codigo} - {unidad.descripcion}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </div>
 
                         {/* Ambiente - Autocomplete */}
@@ -226,13 +244,13 @@ const RegistroCargos = () => {
                                 onChange={(e) => {
                                     const texto = e.target.value;
                                     setAmbienteInput(texto);
-                                    setMostrarSugerencias(true);
+                                    setMostrarSugerenciasAmbiente(true);
                                     clearTimeout(debounceTimeout);
                                     debounceTimeout = setTimeout(() => buscarAmbientes(texto), 300);
                                 }}
                                 required
                             />
-                            {mostrarSugerencias && sugerenciasAmbientes.length > 0 && (
+                            {mostrarSugerenciasAmbiente && sugerenciasAmbientes.length > 0 && (
                                 <ul className="list-group position-absolute w-100 z-3">
                                     {sugerenciasAmbientes.map((ambiente) => (
                                         <li
@@ -245,7 +263,7 @@ const RegistroCargos = () => {
                                                     ambiente: ambiente.codigo,
                                                 }));
                                                 setAmbienteInput(`${ambiente.codigo} - ${ambiente.descripcion}`);
-                                                setMostrarSugerencias(false);
+                                                setMostrarSugerenciasAmbiente(false);
 
                                                 try {
                                                     const res = await axios.get<{ codigo: string }>(
@@ -279,7 +297,7 @@ const RegistroCargos = () => {
                             {mensajeCodigo && <div className="text-danger mt-1">{mensajeCodigo}</div>}
                         </div>
 
-                        {/* Cargo (antes descripción) */}
+                        {/* Cargo */}
                         <div className="mb-3">
                             <label className="form-label">Descripción / Cargo</label>
                             <input
@@ -307,7 +325,6 @@ const RegistroCargos = () => {
                             </select>
                         </div>
 
-                        {/* Botones */}
                         <div className="d-flex justify-content-end">
                             <button type="submit" className="btn btn-primary">
                                 <i className="bi bi-save me-2"></i> Guardar

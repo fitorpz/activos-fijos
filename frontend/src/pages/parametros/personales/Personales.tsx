@@ -12,6 +12,7 @@ export interface Usuario {
 interface Personal {
     id: number;
     documento: number;
+    expedido: string;
     ci: string;
     nombre: string;
     profesion?: string;
@@ -33,8 +34,8 @@ interface Personal {
 
 const Personales = () => {
     const [personales, setPersonales] = useState<Personal[]>([]);
-    const [cargando, setCargando] = useState(true);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
+    const [cargando, setCargando] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -63,6 +64,7 @@ const Personales = () => {
             setCargando(false);
         }
     };
+
     const obtenerTextoEstadoCivil = (valor?: number): string => {
         switch (valor) {
             case 1: return 'Soltero';
@@ -82,7 +84,6 @@ const Personales = () => {
         }
     };
 
-
     const cambiarEstado = async (id: number) => {
         if (!window.confirm('¿Estás seguro de cambiar el estado de este personal?')) return;
         try {
@@ -97,6 +98,23 @@ const Personales = () => {
             console.error('Error al cambiar el estado del personal:', error);
         }
     };
+
+    const exportarPDF = async () => {
+        const estado = estadoFiltro === 'activos' ? 'ACTIVO' : estadoFiltro === 'inactivos' ? 'INACTIVO' : 'todos';
+
+        try {
+            const res = await axios.get(
+                `/parametros/personal/exportar/pdf?estado=${estado}`,
+                { responseType: 'blob' }
+            );
+            const blob = new Blob([res.data as Blob], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (error) {
+            console.error('❌ Error al exportar PDF:', error);
+        }
+    };
+
 
     return (
         <div className="container mt-4">
@@ -115,6 +133,13 @@ const Personales = () => {
                     </button>
 
                     <button
+                        className="btn btn-outline-success"
+                        onClick={exportarPDF}
+                    >
+                        <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                    </button>
+
+                    <button
                         className="btn btn-outline-secondary"
                         onClick={() => navigate('/parametros')}
                     >
@@ -123,10 +148,9 @@ const Personales = () => {
 
                     <div style={{ minWidth: '160px' }}>
                         <select
-                            id="filtro-estado"
+                            className="form-select"
                             value={estadoFiltro}
                             onChange={(e) => setEstadoFiltro(e.target.value)}
-                            className="form-select"
                         >
                             <option value="todos">Todos</option>
                             <option value="activos">Solo Activos</option>
@@ -142,6 +166,7 @@ const Personales = () => {
                         <tr>
                             <th>Nro.</th>
                             <th>Nro. Documento</th>
+                            <th>Expedido</th>
                             <th>CI</th>
                             <th>Nombre</th>
                             <th>Profesión</th>
@@ -163,13 +188,14 @@ const Personales = () => {
                     <tbody>
                         {cargando ? (
                             <tr>
-                                <td colSpan={18} className="text-center">Cargando datos...</td>
+                                <td colSpan={19} className="text-center">Cargando datos...</td>
                             </tr>
                         ) : personales.length > 0 ? (
                             personales.map((p, index) => (
                                 <tr key={p.id}>
                                     <td>{index + 1}</td>
                                     <td>{p.documento}</td>
+                                    <td>{p.expedido}</td>
                                     <td>{p.ci}</td>
                                     <td>{p.nombre}</td>
                                     <td>{p.profesion ?? '—'}</td>
@@ -204,7 +230,7 @@ const Personales = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={18} className="text-center">No hay registros.</td>
+                                <td colSpan={19} className="text-center">No hay registros.</td>
                             </tr>
                         )}
                     </tbody>

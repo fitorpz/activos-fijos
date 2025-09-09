@@ -20,8 +20,8 @@ export class Nucleo {
   @Column()
   descripcion: string;
 
-  @Column({ nullable: false })
-  estado: string;
+  @Column({ type: 'enum', enum: ['ACTIVO', 'INACTIVO'], default: 'ACTIVO' })
+  estado: 'ACTIVO' | 'INACTIVO';
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
@@ -42,7 +42,4 @@ export class Nucleo {
 
   @Column({ name: 'actualizado_por_id', nullable: true })
   actualizado_por_id?: number;
-
-  @Column({ type: 'timestamp', nullable: true })
-  deleted_at: Date;
 }

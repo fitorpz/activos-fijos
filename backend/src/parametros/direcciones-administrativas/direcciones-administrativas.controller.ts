@@ -44,6 +44,17 @@ export class DireccionesAdministrativasController {
     return this.direccionesService.create(dto, userId);
   }
 
+  @Get('verificar-codigo/:codigo')
+  async verificarCodigo(@Param('codigo') codigo: string) {
+    const existe = await this.direccionRepository.findOneBy({
+      codigo: codigo.trim().toUpperCase(), // <-- normalizado
+    });
+
+    return { disponible: !existe };
+  }
+
+
+
   @Get()
   findAll(@Req() req: RequestWithUser): Promise<DireccionAdministrativa[]> {
     const estado = req.query.estado as string;

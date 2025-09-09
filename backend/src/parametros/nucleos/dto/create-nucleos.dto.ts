@@ -1,4 +1,4 @@
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsIn } from 'class-validator';
 
 export class CreateNucleosDto {
     @IsNotEmpty()
@@ -6,4 +6,10 @@ export class CreateNucleosDto {
 
     @IsNotEmpty()
     descripcion: string;
+
+    @IsOptional()
+    @IsIn(['ACTIVO', 'INACTIVO'])
+    estado?: 'ACTIVO' | 'INACTIVO';
 }
+
+

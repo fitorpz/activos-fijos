@@ -9,6 +9,8 @@ import {
   ParseIntPipe,
   UseGuards,
   Req,
+  Query,
+  Res
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -18,6 +20,10 @@ import { CreateNucleosDto } from './dto/create-nucleos.dto';
 import { UpdateNucleosDto } from './dto/update-nucleos.dto';
 import { NucleosService } from './nucleos.service';
 import type { RequestWithUser } from 'src/interfaces/request-with-user.interface';
+import type { Response } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
+import { generarPDFDesdeHTML } from '../../pdf/generarPDF';
 
 @Controller('parametros/nucleos')
 @UseGuards(JwtAuthGuard)
@@ -38,15 +44,68 @@ export class NucleosController {
     return this.direccionesService.create(dto, userId);
   }
 
-  @Get()
-  findAll(): Promise<Nucleo[]> {
-    return this.areaRepository.find();
+  @Get('verificar-codigo/:codigo')
+  async verificarCodigo(@Param('codigo') codigo: string) {
+    const existe = await this.areaRepository.findOneBy({
+      codigo: codigo.trim().toUpperCase(),
+    });
+
+    return { disponible: !existe };
   }
+
+
+  @Get()
+  findAll(@Req() req: RequestWithUser): Promise<Nucleo[]> {
+    const estado = req.query.estado as string;
+    return this.direccionesService.findAll(estado);
+  }
+
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.direccionesService.findOne(id);
   }
+
+  @Get('exportar/pdf')
+  async exportarPDF(
+    @Res() res: Response,
+    @Query('estado') estado: string,
+  ) {
+    try {
+      const nucleos = await this.direccionesService.findAll(estado);
+
+      const filasHTML = nucleos.map((nucleo, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${nucleo.codigo}</td>
+        <td>${nucleo.descripcion}</td>
+        <td>${nucleo.estado}</td>
+      </tr>
+    `).join('');
+
+      const templatePath = path.join(process.cwd(), 'templates', 'pdf', 'parametros', 'nucleos-pdf.html');
+      let html: string;
+
+      try {
+        html = fs.readFileSync(templatePath, 'utf-8');
+      } catch (e) {
+        console.error('❌ No se encontró la plantilla:', templatePath);
+        throw new Error('Plantilla HTML no encontrada');
+      }
+
+      html = html.replace('<!-- FILAS_NUCLEOS -->', filasHTML);
+
+      const buffer = await generarPDFDesdeHTML(html);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline; filename=nucleos.pdf');
+      res.end(buffer);
+    } catch (error) {
+      console.error('❌ Error al generar el PDF:', error);
+      return res.status(500).json({ message: 'Error al exportar PDF' });
+    }
+  }
+
 
   @Put(':id')
   update(
@@ -59,8 +118,9 @@ export class NucleosController {
   }
 
 
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.direccionesService.remove(id);
+  @Put(':id/cambiar-estado')
+  cambiarEstado(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithUser) {
+    const userId = req.user.id;
+    return this.direccionesService.cambiarEstado(id, userId);
   }
 }
