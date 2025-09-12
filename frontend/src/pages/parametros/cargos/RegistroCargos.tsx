@@ -145,10 +145,12 @@ const RegistroCargos = () => {
                     estado: formData.estado,
                     codigo: formData.codigo,
                     cargo: formData.cargo,
+                    ambiente_id: Number(formData.ambiente_id),
                     personal1: '',
                     personal2: '',
                     personal3: '',
-                },
+                }
+                ,
                 { headers: authHeaders() }
             );
 

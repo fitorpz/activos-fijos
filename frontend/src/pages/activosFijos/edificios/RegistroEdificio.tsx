@@ -117,6 +117,14 @@ interface FormDataEdificio {
     // Opcionales
     creado_por_id?: number;
     actualizado_por_id?: number;
+    auxiliar_id?: string;
+    auxiliar?: string;
+}
+
+interface Auxiliar {
+    id: number;
+    codigo: string;
+    descripcion: string;
 }
 
 
@@ -195,7 +203,9 @@ const RegistroEdificio = () => {
         id_af: '',
         codigo_af: '',
         nombre_af: '',
-        estado_af: ''
+        estado_af: '',
+        auxiliar_id: '',
+        auxiliar: ''
     });
 
 
@@ -208,9 +218,14 @@ const RegistroEdificio = () => {
     const [buscarCargo, setBuscarCargo] = useState('');
     const [cargoInput, setCargoInput] = useState('');
     const [inputCargo, setInputCargo] = useState('');
+    const [auxiliarInput, setAuxiliarInput] = useState('');
+    const [sugerenciasAuxiliares, setSugerenciasAuxiliares] = useState<Auxiliar[]>([]);
+    const [mostrarSugerenciasAuxiliar, setMostrarSugerenciasAuxiliar] = useState(false);
 
+    // Este efecto busca cargos SOLO si hay ambiente seleccionado y algo escrito
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
+            console.log("DEBUG: ambiente_id:", formData.ambiente_id, "inputCargo:", inputCargo);
             if (inputCargo.length > 0 && formData.ambiente_id) {
                 buscarCargos(Number(formData.ambiente_id), inputCargo);
             } else {
@@ -222,34 +237,12 @@ const RegistroEdificio = () => {
     }, [inputCargo, formData.ambiente_id]);
 
 
-
     useEffect(() => {
-        const fetchCargos = async () => {
-            if (buscarCargo.length < 2 || !formData.ambiente_id) {
-                setSugerenciasCargos([]);
-                return;
-            }
+        setInputCargo('');
+        setSugerenciasCargos([]);
+        setFormData(prev => ({ ...prev, cargo: '', cargo_id: '' }));
+    }, [formData.ambiente_id]);
 
-            try {
-                const res = await axiosInstance.get<Cargo[]>('/parametros/cargos/buscar-por-ambiente', {
-                    params: {
-                        ambiente_id: formData.ambiente_id,
-                        q: buscarCargo, // texto ingresado
-                    },
-                });
-
-                setSugerenciasCargos(res.data);
-            } catch (error) {
-                console.error('❌ Error al buscar cargos:', error);
-            }
-        };
-
-        const delayDebounce = setTimeout(() => {
-            fetchCargos();
-        }, 300); // pequeño delay para no hacer llamada por cada tecla
-
-        return () => clearTimeout(delayDebounce);
-    }, [buscarCargo, formData.ambiente_id]);
 
     // Cargar áreas al inicio
     useEffect(() => {
@@ -320,12 +313,39 @@ const RegistroEdificio = () => {
                 }
             });
 
-
             setSugerenciasCargos(response.data);
         } catch (error) {
             console.error('Error al buscar cargos:', error);
         }
     };
+
+    // 2. Define authHeaders
+    const authHeaders = () => {
+        const token = localStorage.getItem('token');
+        return { Authorization: `Bearer ${token}` };
+    };
+
+    // 3. Buscar auxiliares con autocomplete
+    const buscarAuxiliares = async (texto: string) => {
+        if (!texto.trim().length) {
+            setSugerenciasAuxiliares([]);
+            return;
+        }
+        try {
+            const res = await axiosInstance.get<Auxiliar[]>('/parametros/auxiliares/buscar', {
+                headers: authHeaders(),
+                params: { search: texto, estado: 'ACTIVO' } // usa 'search' como en el backend, no 'q'
+            });
+
+
+            setSugerenciasAuxiliares(res.data);
+        } catch (e) {
+            setSugerenciasAuxiliares([]);
+        }
+    };
+
+
+
 
 
 
@@ -360,16 +380,17 @@ const RegistroEdificio = () => {
         }
     };
 
+
     const seleccionarCargo = (cargo: Cargo) => {
         setFormData(prev => ({
             ...prev,
-            cargo: `${cargo.codigo} - ${cargo.cargo}`,
+            cargo: `${cargo.codigo} - ${cargo.cargo ?? cargo.descripcion}`,
             cargo_id: cargo.id
         }));
-        setCargoInput(`${cargo.codigo} - ${cargo.cargo}`);
-        setInputCargo(`${cargo.codigo} - ${cargo.cargo}`);
+        setInputCargo(`${cargo.codigo} - ${cargo.cargo ?? cargo.descripcion}`);
         setSugerenciasCargos([]);
     };
+
 
 
 
@@ -496,7 +517,7 @@ const RegistroEdificio = () => {
                                     )}
                                 </div>
 
-                                <div className="mb-3">
+                                <div className="col-md-6 mb-3">
                                     <label htmlFor="cargo" className="form-label">Cargo</label>
                                     <input
                                         type="text"
@@ -516,12 +537,54 @@ const RegistroEdificio = () => {
                                                     className="list-group-item list-group-item-action"
                                                     onClick={() => seleccionarCargo(cargo)}
                                                 >
-                                                    {cargo.codigo} - {cargo.descripcion}
+                                                    {cargo.codigo} - {cargo.cargo ?? cargo.descripcion}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+
+                                </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label">Auxiliar</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Buscar auxiliar..."
+                                        value={auxiliarInput}
+                                        onChange={e => {
+                                            const texto = e.target.value;
+                                            setAuxiliarInput(texto);
+                                            setMostrarSugerenciasAuxiliar(true);
+                                            buscarAuxiliares(texto);
+                                        }}
+                                    />
+                                    {mostrarSugerenciasAuxiliar && sugerenciasAuxiliares.length > 0 && (
+                                        <ul className="list-group position-absolute w-100 z-3">
+                                            {sugerenciasAuxiliares.map(aux => (
+                                                <li
+                                                    key={aux.id}
+                                                    className="list-group-item list-group-item-action"
+                                                    onClick={() => {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            auxiliar_id: aux.id.toString(),
+                                                            auxiliar: aux.descripcion,
+                                                        }));
+                                                        setAuxiliarInput(`${aux.codigo} - ${aux.descripcion}`);
+                                                        setMostrarSugerenciasAuxiliar(false);
+                                                    }}
+
+                                                    style={{ cursor: 'pointer' }}
+                                                >
+                                                    {aux.codigo} - {aux.descripcion}
                                                 </li>
                                             ))}
                                         </ul>
                                     )}
                                 </div>
+
+
 
 
 

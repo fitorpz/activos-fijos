@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { Auxiliar } from './entities/auxiliares.entity';
 import { CreateAuxiliaresDto } from './dto/create-auxiliares.dto';
 import { UpdateAuxiliaresDto } from './dto/update-auxiliares.dto';
@@ -135,4 +135,21 @@ export class AuxiliaresService {
 
     return siguienteNumero; // Ej: "0008"
   }
+
+  // En AuxiliaresService
+  // En auxiliares.service.ts
+  async buscarAuxiliares(search: string, estado?: string): Promise<Auxiliar[]> {
+    const query = this.auxiliarRepo.createQueryBuilder('auxiliar')
+      .where('auxiliar.estado = :estado', { estado: (estado ?? 'ACTIVO').toUpperCase() });
+
+    if (search) {
+      query.andWhere(
+        '(auxiliar.codigo ILIKE :search OR auxiliar.descripcion ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+    return query.orderBy('auxiliar.codigo', 'ASC').limit(10).getMany();
+  }
+
+
 }

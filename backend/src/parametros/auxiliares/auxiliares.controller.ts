@@ -50,6 +50,7 @@ export class AuxiliaresController {
     return this.auxiliaresService.findAll(estado);
   }
 
+
   @Get('siguiente-codigo')
   async obtenerSiguienteCodigo(@Query('codigo_grupo') codigo_grupo: string) {
     if (!codigo_grupo) {
@@ -58,6 +59,16 @@ export class AuxiliaresController {
 
     const correlativo = await this.auxiliaresService.getSiguienteCodigoAuxiliar(codigo_grupo);
     return { correlativo }; // ej: { correlativo: "0001" }
+  }
+
+  // En auxiliares.controller.ts
+  @Get('buscar')
+  async buscarAuxiliares(
+    @Query('search') search: string,
+    @Query('estado') estado?: string,
+  ) {
+    // Pasa el parámetro al servicio
+    return this.auxiliaresService.buscarAuxiliares(search, estado);
   }
 
 

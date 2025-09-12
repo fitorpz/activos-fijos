@@ -15,7 +15,7 @@ export class CargosService {
 
     @InjectRepository(Usuario)
     private readonly usuarioRepo: Repository<Usuario>,
-  ) {}
+  ) { }
 
   // Crear un nuevo cargo
   async create(dto: CreateCargosDto, userId: number): Promise<Cargo> {
@@ -58,12 +58,17 @@ export class CargosService {
   }
 
   // Actualizar un cargo
+  // Actualizar un cargo
+  // En tu service CargosService
+
   async update(id: number, dto: UpdateCargosDto, userId: number): Promise<Cargo> {
     const cargo = await this.findOne(id);
-
     const usuario = await this.usuarioRepo.findOneBy({ id: userId });
-    if (!usuario) {
-      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+    if (!usuario) throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+
+    // 👇 ESTA PARTE FALTABA en muchos casos
+    if (dto.ambiente_id !== undefined && dto.ambiente_id !== null) {
+      cargo.ambiente_id = dto.ambiente_id;
     }
 
     if (dto.area !== undefined) cargo.area = dto.area;
@@ -80,6 +85,9 @@ export class CargosService {
 
     return this.cargoRepository.save(cargo);
   }
+
+
+
 
   // Cambiar estado ACTIVO/INACTIVO
   async cambiarEstado(id: number, estado: 'ACTIVO' | 'INACTIVO', userId: number): Promise<Cargo> {

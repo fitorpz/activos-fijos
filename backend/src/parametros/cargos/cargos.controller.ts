@@ -50,15 +50,17 @@ export class CargosController {
     @Query('ambiente_id', ParseIntPipe) ambiente_id: number,
     @Query('search') search: string,
   ) {
+    // FILTRA por ambiente y texto en cargo o código, solo los activos
     return this.cargoRepository.find({
       where: [
-        { ambiente_id, cargo: ILike(`%${search}%`) },
-        { ambiente_id, codigo: ILike(`%${search}%`) },
+        { ambiente_id, estado: 'ACTIVO', cargo: ILike(`%${search}%`) },
+        { ambiente_id, estado: 'ACTIVO', codigo: ILike(`%${search}%`) },
       ],
       order: { codigo: 'ASC' },
       take: 10,
     });
   }
+
 
   // ✅ Búsqueda por ambiente para el módulo de edificios
   @Get('buscar-por-ambiente')
@@ -93,6 +95,7 @@ export class CargosController {
     const userId = req.user.id;
     return this.cargosService.update(id, dto, userId);
   }
+
 
   @Put(':id/estado')
   cambiarEstado(

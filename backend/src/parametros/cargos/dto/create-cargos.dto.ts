@@ -1,14 +1,14 @@
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsNumber } from 'class-validator';
 
 export class CreateCargosDto {
 
-    
+
     @IsNotEmpty()
     area: string;
 
-     @IsNotEmpty()
+    @IsNotEmpty()
     unidad_organizacional: string;
-    
+
     @IsNotEmpty()
     estado: string;
 
@@ -29,6 +29,8 @@ export class CreateCargosDto {
 
     @IsNotEmpty()
     personal3: string;
-    
 
+    @IsNotEmpty()
+    @IsNumber()
+    ambiente_id: number;
 }
