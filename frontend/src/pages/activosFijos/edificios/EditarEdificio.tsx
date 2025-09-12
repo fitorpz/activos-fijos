@@ -1,53 +1,67 @@
-// RegistroEdificio.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import axiosInstance from '../../../utils/axiosConfig';
 import { Tabs, Tab } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import '../../styles/form-styles.css';
-import axiosInstance from '../../utils/axiosConfig';
-import { useNavigate } from 'react-router-dom';
+import '../../../styles/form-styles.css';
 
 
-
-const RegistroEdificio = () => {
+const EditarEdificio = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
     const [formData, setFormData] = useState<any>({});
+    const [loading, setLoading] = useState(true);
 
+    // Cargar datos del edificio al montar
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const response = await axiosInstance.get<{ data: any }>(`/edificios/${id}`);
+                setFormData(response.data.data); // Asumimos el backend devuelve { data: edificio }
+                setLoading(false);
+            } catch (error) {
+                console.error('Error al cargar el edificio', error);
+                alert('❌ No se pudo cargar el edificio.');
+            }
+        };
+
+        fetchData();
+    }, [id]);
+
+    // Manejar cambios en el formulario
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData((prev: any) => ({ ...prev, [name]: value }));
+        setFormData((prev: any) => ({
+            ...prev,
+            [name]: value,
+        }));
     };
 
-    const navigate = useNavigate();
-
+    // Enviar formulario actualizado
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         try {
-            // Limpiar campos vacíos o nulos
-            const payload = Object.fromEntries(
+            const cleanData = Object.fromEntries(
                 Object.entries(formData).filter(([_, v]) => v !== '' && v !== null)
             );
 
-            const response = await axiosInstance.post('/edificios', payload);
+            await axiosInstance.put(`/edificios/${id}`, cleanData);
 
-            alert('✅ Edificio registrado correctamente');
-            console.log('Respuesta:', response.data);
-
-            // Redirigir a la lista
+            alert('✅ Edificio actualizado correctamente');
             navigate('/edificios');
         } catch (error: any) {
-            console.error('❌ Error al guardar el edificio:', error);
-            if (error.response?.data?.message) {
-                alert(`Error: ${error.response.data.message}`);
-            } else {
-                alert('Error desconocido al registrar edificio.');
-            }
+            console.error('Error al actualizar', error);
+            alert('❌ Ocurrió un error al actualizar el edificio');
         }
     };
+
+    if (loading) return <div className="container mt-5">Cargando datos...</div>;
 
     return (
         <div className="container mt-4">
             <div className="form-container">
-                <h2 className="mb-4">Registro de Edificio</h2>
+                <h2 className="mb-4">Editar Edificio</h2>
                 <form onSubmit={handleSubmit}>
                     <Tabs defaultActiveKey="datos" id="registro-edificio-tabs" className="mb-3" fill>
 
@@ -849,12 +863,17 @@ const RegistroEdificio = () => {
                             </div>
                         </Tab>
                     </Tabs>
-                    <button type="submit" className="btn btn-primary mt-3">Registrar</button>
+                    <div className="mt-3 d-flex justify-content-between">
+                        <button type="submit" className="btn btn-primary">Guardar Cambios</button>
+                        <button type="button" className="btn btn-danger" onClick={() => navigate('/edificios')}>
+                            Cancelar
+                        </button>
+                    </div>
+
                 </form>
             </div>
-
         </div>
     );
 };
 
-export default RegistroEdificio;
+export default EditarEdificio;

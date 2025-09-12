@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from '../../utils/axiosConfig'; // Ajusta ruta según tu estructura
+import axios from '../../../utils/axiosConfig'; // Ajusta ruta según tu estructura
 
 export interface Usuario {
   id: number;

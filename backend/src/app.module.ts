@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { UserLogModule } from './user-log/user-log.module';
 import { AuthModule } from './auth/auth.module';
-import { EdificiosModule } from './edificios/edificios.module';
+import { EdificiosModule } from './activosFijos/edificios/edificios.module';
 import { EquipoOficinaModule } from './equipo-oficina/equipo-oficina.module';
 import { DireccionesAdministrativasModule } from './parametros/direcciones-administrativas/direcciones-administrativas.module';
 import { UnidadesOrganizacionalesModule } from './parametros/unidades-organizacionales/unidades-organizacionales.module';

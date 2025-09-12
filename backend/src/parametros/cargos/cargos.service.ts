@@ -1,120 +1,87 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { Cargo } from './entities/cargos.entity';
 import { CreateCargosDto } from './dto/create-cargos.dto';
 import { UpdateCargosDto } from './dto/update-cargos.dto';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
 
+
 @Injectable()
 export class CargosService {
   constructor(
     @InjectRepository(Cargo)
-    private readonly direccionRepo: Repository<Cargo>,
+    private readonly cargoRepository: Repository<Cargo>,
 
     @InjectRepository(Usuario)
     private readonly usuarioRepo: Repository<Usuario>,
-  ) { }
+  ) {}
 
-  // Crear una nueva area
-  async create(
-    dto: CreateCargosDto,
-    userId: number,
-  ): Promise<Cargo> {
+  // Crear un nuevo cargo
+  async create(dto: CreateCargosDto, userId: number): Promise<Cargo> {
     const usuario = await this.usuarioRepo.findOneBy({ id: userId });
 
     if (!usuario) {
       throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
     }
 
-    const nuevaDireccion = this.direccionRepo.create({
+    const nuevoCargo = this.cargoRepository.create({
       ...dto,
       creado_por: usuario,
     });
 
-    return this.direccionRepo.save(nuevaDireccion);
+    return this.cargoRepository.save(nuevoCargo);
   }
 
-  // Obtener todas las direcciones
+  // Obtener todos los cargos
   async findAll(estado?: 'ACTIVO' | 'INACTIVO'): Promise<Cargo[]> {
     const where = estado ? { estado } : {};
-    return this.direccionRepo.find({
+    return this.cargoRepository.find({
       where,
       order: { id: 'DESC' },
       relations: ['creado_por', 'actualizado_por'],
     });
   }
 
-
-  // Obtener una sola dirección por ID
+  // Obtener un cargo por ID
   async findOne(id: number): Promise<Cargo> {
-    const direccion = await this.direccionRepo.findOne({
+    const cargo = await this.cargoRepository.findOne({
       where: { id },
       relations: ['creado_por', 'actualizado_por'],
     });
 
-    if (!direccion) {
+    if (!cargo) {
       throw new NotFoundException(`Cargo ${id} no encontrado`);
     }
 
-    return direccion;
+    return cargo;
   }
 
-  // Actualizar una dirección
-  async update(
-    id: number,
-    dto: UpdateCargosDto,
-    userId: number,
-  ): Promise<Cargo> {
-    const direccion = await this.findOne(id);
+  // Actualizar un cargo
+  async update(id: number, dto: UpdateCargosDto, userId: number): Promise<Cargo> {
+    const cargo = await this.findOne(id);
 
     const usuario = await this.usuarioRepo.findOneBy({ id: userId });
     if (!usuario) {
       throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
     }
 
-    if (dto.area !== undefined) {
-      direccion.area = dto.area;
-    }
+    if (dto.area !== undefined) cargo.area = dto.area;
+    if (dto.unidad_organizacional !== undefined) cargo.unidad_organizacional = dto.unidad_organizacional;
+    if (dto.estado !== undefined) cargo.estado = dto.estado;
+    if (dto.ambiente !== undefined) cargo.ambiente = dto.ambiente;
+    if (dto.codigo !== undefined) cargo.codigo = dto.codigo;
+    if (dto.cargo !== undefined) cargo.cargo = dto.cargo;
+    if (dto.personal1 !== undefined) cargo.personal1 = dto.personal1;
+    if (dto.personal2 !== undefined) cargo.personal2 = dto.personal2;
+    if (dto.personal3 !== undefined) cargo.personal3 = dto.personal3;
 
-    if (dto.unidad_organizacional !== undefined) {
-      direccion.unidad_organizacional = dto.unidad_organizacional;
-    }
+    cargo.actualizado_por = usuario;
 
-    if (dto.estado !== undefined) {
-      direccion.estado = dto.estado;
-    }
-
-    if (dto.ambiente !== undefined) {
-      direccion.ambiente = dto.ambiente;
-    }
-
-    if (dto.codigo !== undefined) {
-      direccion.codigo = dto.codigo;
-    }
-
-    if (dto.cargo !== undefined) {
-      direccion.cargo = dto.cargo;
-    }
-
-    if (dto.personal1 !== undefined) {
-      direccion.personal1 = dto.personal1;
-    }
-
-    if (dto.personal2 !== undefined) {
-      direccion.personal2 = dto.personal2;
-    }
-
-    if (dto.personal3 !== undefined) {
-      direccion.personal3 = dto.personal3;
-    }
-
-    direccion.actualizado_por = usuario;
-
-
-    return this.direccionRepo.save(direccion);
+    return this.cargoRepository.save(cargo);
   }
 
+  // Cambiar estado ACTIVO/INACTIVO
   async cambiarEstado(id: number, estado: 'ACTIVO' | 'INACTIVO', userId: number): Promise<Cargo> {
     const cargo = await this.findOne(id);
 
@@ -123,12 +90,13 @@ export class CargosService {
 
     cargo.estado = estado;
     cargo.actualizado_por = usuario;
-    return this.direccionRepo.save(cargo);
+
+    return this.cargoRepository.save(cargo);
   }
 
+  // Generar código automático por ambiente
   async generarCodigoPorAmbiente(ambienteCodigo: string): Promise<{ codigo: string }> {
-    // Contar cargos que ya usan ese ambiente
-    const total = await this.direccionRepo
+    const total = await this.cargoRepository
       .createQueryBuilder('cargo')
       .where('cargo.ambiente = :ambienteCodigo', { ambienteCodigo })
       .getCount();
@@ -139,6 +107,18 @@ export class CargosService {
     return { codigo: codigoFinal };
   }
 
+  // Buscar cargos por ambiente_id y texto
+  async buscarPorAmbiente(ambiente_id: number, q: string): Promise<Cargo[]> {
+    const resultados = await this.cargoRepository.find({
+      where: {
+        ambiente_id,
+        estado: 'ACTIVO',
+        cargo: ILike(`%${q}%`)
+      },
+      order: { codigo: 'ASC' }
+    });
 
-
+    console.log('📦 Cargos encontrados:', resultados);
+    return resultados;
+  }
 }

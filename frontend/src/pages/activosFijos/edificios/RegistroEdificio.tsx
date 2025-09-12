@@ -1,73 +1,547 @@
+// RegistroEdificio.tsx
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axiosInstance from '../../utils/axiosConfig';
 import { Tabs, Tab } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import '../../styles/form-styles.css';
+import '../../../styles/form-styles.css';
+import axiosInstance from '../../../utils/axiosConfig';
+import { useNavigate } from 'react-router-dom';
 
 
-const EditarEdificio = () => {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const [formData, setFormData] = useState<any>({});
-    const [loading, setLoading] = useState(true);
+interface Area {
+    id: number;
+    codigo: string;
+    descripcion: string;
+}
 
-    // Cargar datos del edificio al montar
+interface UnidadOrganizacional {
+    id: number;
+    codigo: string;
+    descripcion: string;
+}
+
+interface Ambiente {
+    id: number;
+    codigo: string;
+    descripcion: string;
+}
+
+interface Cargo {
+    id: number;
+    codigo: string;
+    cargo: string;
+    descripcion: string;
+}
+
+interface FormDataEdificio {
+    descripcion_edificio: string;
+    area_id: string;
+    unidad_organizacional_id: string;
+    unidad_organizacional: string;
+    ambiente_id: string;
+    ambiente: string;
+    cargo: string;
+    cargo_id: string | number;
+
+    codigo_311: string;
+    ingreso_311: string;
+    ingreso_des_311: string;
+    fecha_alta_311: string;
+    proveedor_311: string;
+    fecha_factura_311: string;
+    num_factura_311: string;
+    observaciones_311: string;
+    estado_conservacion_311: string;
+    valor_311: string;
+    vida_util_311: string;
+    fecha_estado_311: string;
+    descripcion_estado_311: string;
+    estado_311: string;
+    estado_faltante_311: string;
+
+    id_per: string;
+    tdi_per: string;
+    ndi_per: string;
+    expedido_per: string;
+    nombre_per: string;
+    ap_paterno_per: string;
+    ap_materno_per: string;
+    ap_conyuge_per: string;
+    sexo_per: string;
+    f_nacimiento_per: string;
+    c_civil_per: string;
+    profesion_per: string;
+    direccion_per: string;
+    telefono_per: string;
+    celular_per: string;
+    email_per: string;
+    estado_per: string;
+
+    id_clasi_2: string;
+    codigo_clasi: string;
+    nombre_clasi: string;
+    descripcion_clasi: string;
+    id_sg_clasi: string;
+    nombre_sg_clasi: string;
+
+    id_func: string;
+    tipo_func: string;
+    num_file: string;
+    item_func: string;
+    telefono_func: string;
+    interno_func: string;
+    estado_func: string;
+
+    id_cargo_func: string;
+    id_ubi_func: string;
+    id_act_func: string;
+    id_cargo: string;
+    codigo_cargo: string;
+    nombre_cargo: string;
+    descripcion_cargo: string;
+    estado_cargo: string;
+    id_af_cargo: string;
+
+    id_ubi: string;
+    codigo_ubi: string;
+    nombre_ubi: string;
+    direccion_ubi: string;
+    distrito_ubi: string;
+    observaciones_ubi: string;
+    estado_ubi: string;
+
+    id_af: string;
+    codigo_af: string;
+    nombre_af: string;
+    estado_af: string;
+
+    // Opcionales
+    creado_por_id?: number;
+    actualizado_por_id?: number;
+}
+
+
+
+const RegistroEdificio = () => {
+    const [formData, setFormData] = useState<FormDataEdificio>({
+        descripcion_edificio: '',
+        area_id: '',
+        unidad_organizacional_id: '',
+        unidad_organizacional: '',
+        ambiente_id: '',
+        ambiente: '',
+        cargo: '',
+        cargo_id: '',
+        codigo_311: '',
+        ingreso_311: '',
+        ingreso_des_311: '',
+        fecha_alta_311: '',
+        proveedor_311: '',
+        fecha_factura_311: '',
+        num_factura_311: '',
+        observaciones_311: '',
+        estado_conservacion_311: '',
+        valor_311: '',
+        vida_util_311: '',
+        fecha_estado_311: '',
+        descripcion_estado_311: '',
+        estado_311: '',
+        estado_faltante_311: '',
+        id_per: '',
+        tdi_per: '',
+        ndi_per: '',
+        expedido_per: '',
+        nombre_per: '',
+        ap_paterno_per: '',
+        ap_materno_per: '',
+        ap_conyuge_per: '',
+        sexo_per: '',
+        f_nacimiento_per: '',
+        c_civil_per: '',
+        profesion_per: '',
+        direccion_per: '',
+        telefono_per: '',
+        celular_per: '',
+        email_per: '',
+        estado_per: '',
+        id_clasi_2: '',
+        codigo_clasi: '',
+        nombre_clasi: '',
+        descripcion_clasi: '',
+        id_sg_clasi: '',
+        nombre_sg_clasi: '',
+        id_func: '',
+        tipo_func: '',
+        num_file: '',
+        item_func: '',
+        telefono_func: '',
+        interno_func: '',
+        estado_func: '',
+        id_cargo_func: '',
+        id_ubi_func: '',
+        id_act_func: '',
+        id_cargo: '',
+        codigo_cargo: '',
+        nombre_cargo: '',
+        descripcion_cargo: '',
+        estado_cargo: '',
+        id_af_cargo: '',
+        id_ubi: '',
+        codigo_ubi: '',
+        nombre_ubi: '',
+        direccion_ubi: '',
+        distrito_ubi: '',
+        observaciones_ubi: '',
+        estado_ubi: '',
+        id_af: '',
+        codigo_af: '',
+        nombre_af: '',
+        estado_af: ''
+    });
+
+
+    const [areas, setAreas] = useState<Area[]>([]);
+    const [unidadInput, setUnidadInput] = useState('');
+    const [sugerenciasUnidad, setSugerenciasUnidad] = useState<UnidadOrganizacional[]>([]);
+    const [ambienteInput, setAmbienteInput] = useState('');
+    const [sugerenciasAmbientes, setSugerenciasAmbientes] = useState<Ambiente[]>([]);
+    const [sugerenciasCargos, setSugerenciasCargos] = useState<Cargo[]>([]);
+    const [buscarCargo, setBuscarCargo] = useState('');
+    const [cargoInput, setCargoInput] = useState('');
+    const [inputCargo, setInputCargo] = useState('');
+
     useEffect(() => {
-        const fetchData = async () => {
+        const delayDebounce = setTimeout(() => {
+            if (inputCargo.length > 0 && formData.ambiente_id) {
+                buscarCargos(Number(formData.ambiente_id), inputCargo);
+            } else {
+                setSugerenciasCargos([]);
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounce);
+    }, [inputCargo, formData.ambiente_id]);
+
+
+
+    useEffect(() => {
+        const fetchCargos = async () => {
+            if (buscarCargo.length < 2 || !formData.ambiente_id) {
+                setSugerenciasCargos([]);
+                return;
+            }
+
             try {
-                const response = await axiosInstance.get<{ data: any }>(`/edificios/${id}`);
-                setFormData(response.data.data); // Asumimos el backend devuelve { data: edificio }
-                setLoading(false);
+                const res = await axiosInstance.get<Cargo[]>('/parametros/cargos/buscar-por-ambiente', {
+                    params: {
+                        ambiente_id: formData.ambiente_id,
+                        q: buscarCargo, // texto ingresado
+                    },
+                });
+
+                setSugerenciasCargos(res.data);
             } catch (error) {
-                console.error('Error al cargar el edificio', error);
-                alert('❌ No se pudo cargar el edificio.');
+                console.error('❌ Error al buscar cargos:', error);
             }
         };
 
-        fetchData();
-    }, [id]);
+        const delayDebounce = setTimeout(() => {
+            fetchCargos();
+        }, 300); // pequeño delay para no hacer llamada por cada tecla
 
-    // Manejar cambios en el formulario
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData((prev: any) => ({
-            ...prev,
-            [name]: value,
-        }));
+        return () => clearTimeout(delayDebounce);
+    }, [buscarCargo, formData.ambiente_id]);
+
+    // Cargar áreas al inicio
+    useEffect(() => {
+        const obtenerAreas = async () => {
+            try {
+                const res = await axiosInstance.get<Area[]>('/parametros/areas');
+                setAreas(res.data);
+            } catch (error) {
+                console.error('Error al obtener áreas:', error);
+            }
+        };
+
+        obtenerAreas();
+    }, []);
+
+
+
+    const buscarUnidades = async (texto: string) => {
+        try {
+            if (!formData.area_id) return;
+            const res = await axiosInstance.get<UnidadOrganizacional[]>(
+                '/parametros/unidades-organizacionales/buscar',
+                {
+                    params: {
+                        q: texto,
+                        estado: 'ACTIVO',
+                        area_id: formData.area_id
+                    }
+                }
+            );
+            setSugerenciasUnidad(res.data);
+        } catch (error) {
+            console.error('Error al buscar unidades:', error);
+        }
     };
 
-    // Enviar formulario actualizado
+    const buscarAmbientes = async (unidadOrganizacionalId: number, search: string) => {
+        try {
+            if (!search || search.trim() === '') {
+                setSugerenciasAmbientes([]); // limpia sugerencias
+                return;
+            }
+
+            const token = localStorage.getItem('token');
+            const res = await axiosInstance.get<Ambiente[]>('/parametros/ambientes/buscar', {
+                headers: { Authorization: `Bearer ${token}` },
+                params: {
+                    unidad_organizacional_id: unidadOrganizacionalId,
+                    search: search.trim()
+                }
+            });
+
+            setSugerenciasAmbientes(res.data);
+
+        } catch (error) {
+            console.error('Error al buscar ambientes:', error);
+        }
+    };
+
+    const buscarCargos = async (ambienteId: number, termino: string) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axiosInstance.get<Cargo[]>('/parametros/cargos/buscar', {
+                headers: { Authorization: `Bearer ${token}` },
+                params: {
+                    ambiente_id: ambienteId,
+                    search: termino
+                }
+            });
+
+
+            setSugerenciasCargos(response.data);
+        } catch (error) {
+            console.error('Error al buscar cargos:', error);
+        }
+    };
+
+
+
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData((prev: any) => ({ ...prev, [name]: value }));
+    };
+
+    const navigate = useNavigate();
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         try {
-            const cleanData = Object.fromEntries(
+            const payload = Object.fromEntries(
                 Object.entries(formData).filter(([_, v]) => v !== '' && v !== null)
             );
 
-            await axiosInstance.put(`/edificios/${id}`, cleanData);
+            const response = await axiosInstance.post('/edificios', payload);
 
-            alert('✅ Edificio actualizado correctamente');
+            alert('✅ Edificio registrado correctamente');
+            console.log('Respuesta:', response.data);
             navigate('/edificios');
         } catch (error: any) {
-            console.error('Error al actualizar', error);
-            alert('❌ Ocurrió un error al actualizar el edificio');
+            console.error('❌ Error al guardar el edificio:', error);
+            if (error.response?.data?.message) {
+                alert(`Error: ${error.response.data.message}`);
+            } else {
+                alert('Error desconocido al registrar edificio.');
+            }
         }
     };
 
-    if (loading) return <div className="container mt-5">Cargando datos...</div>;
+    const seleccionarCargo = (cargo: Cargo) => {
+        setFormData(prev => ({
+            ...prev,
+            cargo: `${cargo.codigo} - ${cargo.cargo}`,
+            cargo_id: cargo.id
+        }));
+        setCargoInput(`${cargo.codigo} - ${cargo.cargo}`);
+        setInputCargo(`${cargo.codigo} - ${cargo.cargo}`);
+        setSugerenciasCargos([]);
+    };
+
+
+
 
     return (
         <div className="container mt-4">
             <div className="form-container">
-                <h2 className="mb-4">Editar Edificio</h2>
+                <h2 className="mb-4">Registro de Edificio</h2>
                 <form onSubmit={handleSubmit}>
                     <Tabs defaultActiveKey="datos" id="registro-edificio-tabs" className="mb-3" fill>
 
                         {/* Sección 1: Datos Iniciales del Bien */}
                         <Tab eventKey="datos" title="Datos Iniciales del Bien">
                             <div className="row">
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="descripcion_edificio" className="form-label">Descripción del Edificio</label>
+                                    <textarea
+                                        className="form-control"
+                                        id="descripcion_edificio"
+                                        name="descripcion_edificio"
+                                        rows={2}
+                                        value={formData.descripcion_edificio || ''}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="area_id" className="form-label">Área</label>
+                                    <select
+                                        className="form-select"
+                                        id="area_id"
+                                        name="area_id"
+                                        value={formData.area_id || ''}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <option value="">Seleccione un área</option>
+                                        {areas.map((area) => (
+                                            <option key={area.id} value={area.id}>
+                                                {area.codigo} - {area.descripcion}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="unidad_organizacional_id" className="form-label">Unidad Organizacional</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        id="unidad_organizacional_input"
+                                        placeholder="Buscar unidad..."
+                                        value={unidadInput}
+                                        onChange={(e) => {
+                                            const texto = e.target.value;
+                                            setUnidadInput(texto);
+                                            buscarUnidades(texto);
+                                        }}
+                                    />
+
+                                    {sugerenciasUnidad.length > 0 && (
+                                        <ul className="list-group position-absolute w-100 z-3" style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                                            {sugerenciasUnidad.map((unidad) => (
+                                                <li
+                                                    key={unidad.id}
+                                                    className="list-group-item list-group-item-action"
+                                                    onClick={() => {
+                                                        setFormData((prev: any) => ({
+                                                            ...prev,
+                                                            unidad_organizacional_id: unidad.id,
+                                                            unidad_organizacional: unidad.descripcion,
+                                                        }));
+                                                        setUnidadInput(`${unidad.codigo} - ${unidad.descripcion}`);
+                                                        setSugerenciasUnidad([]);
+                                                    }}
+                                                    style={{ cursor: 'pointer' }}
+                                                >
+                                                    {unidad.codigo} - {unidad.descripcion}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="ambiente" className="form-label">Ambiente</label>
+                                    <input
+                                        type="text"
+                                        id="ambiente"
+                                        name="ambiente"
+                                        className="form-control"
+                                        value={ambienteInput}
+                                        onChange={(e) => {
+                                            const texto = e.target.value;
+                                            setAmbienteInput(texto);
+                                            buscarAmbientes(parseInt(formData.unidad_organizacional_id), texto);
+                                        }}
+                                        autoComplete="off"
+                                        placeholder="Buscar por código o descripción..."
+                                    />
+                                    {sugerenciasAmbientes.length > 0 && (
+                                        <ul className="list-group position-absolute w-100 z-3" style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                                            {sugerenciasAmbientes.map((ambiente) => (
+                                                <li
+                                                    key={ambiente.id}
+                                                    className="list-group-item list-group-item-action"
+                                                    onClick={() => {
+                                                        setFormData((prev: typeof formData) => ({
+                                                            ...prev,
+                                                            ambiente_id: `${ambiente.id}`, // 👈 convertimos a string
+                                                            ambiente: ambiente.descripcion,
+                                                        }));
+
+
+
+                                                        setAmbienteInput(`${ambiente.codigo} - ${ambiente.descripcion}`);
+                                                        setSugerenciasAmbientes([]);
+                                                    }}
+                                                >
+                                                    {ambiente.codigo} - {ambiente.descripcion}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+
+                                <div className="mb-3">
+                                    <label htmlFor="cargo" className="form-label">Cargo</label>
+                                    <input
+                                        type="text"
+                                        id="cargo"
+                                        className="form-control"
+                                        value={inputCargo}
+                                        onChange={(e) => setInputCargo(e.target.value)}
+                                        placeholder="Buscar cargo por descripción..."
+                                        autoComplete="off"
+                                    />
+
+                                    {sugerenciasCargos.length > 0 && (
+                                        <ul className="list-group mt-1" style={{ maxHeight: '150px', overflowY: 'auto', position: 'absolute', zIndex: 1000 }}>
+                                            {sugerenciasCargos.map((cargo) => (
+                                                <li
+                                                    key={cargo.id}
+                                                    className="list-group-item list-group-item-action"
+                                                    onClick={() => seleccionarCargo(cargo)}
+                                                >
+                                                    {cargo.codigo} - {cargo.descripcion}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+
+
+
+
+
+                                <input type="hidden" name="cargo_id" value={formData.cargo_id || ''} />
+
+
+                                <input
+                                    type="hidden"
+                                    name="ambiente_id"
+                                    value={formData.ambiente_id || ''}
+                                />
+
+                                <input
+                                    type="hidden"
+                                    name="unidad_organizacional_id"
+                                    value={formData.unidad_organizacional_id || ''}
+                                />
+
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="codigo_311" className="form-label">Código del Edificio</label>
                                     <input type="text" className="form-control" id="codigo_311" name="codigo_311" value={formData.codigo_311 || ''} onChange={handleChange} required />
@@ -863,17 +1337,12 @@ const EditarEdificio = () => {
                             </div>
                         </Tab>
                     </Tabs>
-                    <div className="mt-3 d-flex justify-content-between">
-                        <button type="submit" className="btn btn-primary">Guardar Cambios</button>
-                        <button type="button" className="btn btn-danger" onClick={() => navigate('/edificios')}>
-                            Cancelar
-                        </button>
-                    </div>
-
+                    <button type="submit" className="btn btn-primary mt-3">Registrar</button>
                 </form>
             </div>
+
         </div>
     );
 };
 
-export default EditarEdificio;
+export default RegistroEdificio;

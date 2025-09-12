@@ -8,6 +8,24 @@ export class Edificio {
   @PrimaryGeneratedColumn()
   id_311: number;
 
+  @Column({ nullable: true })
+  descripcion_edificio: string;
+
+  @Column({ nullable: true })
+  area_id: number;
+
+  @Column({ nullable: true })
+  nombre_area: string;
+
+  @Column({ nullable: true })
+  codigo_area: string;
+
+  @Column({ nullable: true })
+  unidad_organizacional_id: number;
+
+  @Column({ nullable: true })
+  ambiente_id: number;
+
   // ✅ Campos obligatorios (ya implementados en Datos Generales)
   @Column({ nullable: true })
   codigo_311: string;

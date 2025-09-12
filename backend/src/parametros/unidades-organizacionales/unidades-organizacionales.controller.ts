@@ -79,8 +79,6 @@ export class UnidadesOrganizacionalesController {
     return this.unidadesService.buscar({ q, estado, area_id });
   }
 
-
-
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.unidadesService.findOne(id);

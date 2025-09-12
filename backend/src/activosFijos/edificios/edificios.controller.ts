@@ -14,7 +14,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { EdificiosService } from './edificios.service';
 import { CreateEdificioDto } from './dto/create-edificio.dto';
 import { UpdateEdificioDto } from './dto/update-edificio.dto';
-import type { RequestWithUser } from '../interfaces/request-with-user.interface';
+import type { RequestWithUser } from '../../interfaces/request-with-user.interface';
 
 @Controller('edificios')
 @UseGuards(AuthGuard('jwt')) // Protege todas las rutas

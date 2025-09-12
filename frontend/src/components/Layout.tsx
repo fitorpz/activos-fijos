@@ -42,7 +42,7 @@ const Layout = () => {
                                 <i className="bi bi-box-seam"></i> Activos Fijos
                             </a>
                         </li>
-
+                        {/* Contenido comentado para futuras implementaciones
                         <li className="nav-item dropdown">
                             <a
                                 className="nav-link dropdown-toggle"
@@ -107,6 +107,9 @@ const Layout = () => {
                                 <i className="bi bi-grid"></i> Panel de Control
                             </a>
                         </li>
+                        */}
+
+
                         <li className="nav-item">
                             <a className="nav-link" href="/usuarios">
                                 <i className="bi bi-people-fill"></i> Gestión de Usuarios

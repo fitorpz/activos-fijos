@@ -9,10 +9,10 @@ import {
   ParseIntPipe,
   UseGuards,
   Req,
-  Query
+  Query,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { Cargo } from './entities/cargos.entity';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CreateCargosDto } from './dto/create-cargos.dto';
@@ -24,7 +24,7 @@ import type { RequestWithUser } from 'src/interfaces/request-with-user.interface
 @UseGuards(JwtAuthGuard)
 export class CargosController {
   constructor(
-    private readonly direccionesService: CargosService,
+    private readonly cargosService: CargosService,
 
     @InjectRepository(Cargo)
     private readonly cargoRepository: Repository<Cargo>,
@@ -36,26 +36,52 @@ export class CargosController {
     @Req() req: RequestWithUser,
   ) {
     const userId = req.user.id;
-    return this.direccionesService.create(dto, userId);
+    return this.cargosService.create(dto, userId);
   }
 
   @Get()
   findAll(@Query('estado') estado?: 'ACTIVO' | 'INACTIVO') {
-    return this.direccionesService.findAll(estado);
+    return this.cargosService.findAll(estado);
   }
 
+  // ✅ Búsqueda simple para módulo de cargos (por texto y ambiente)
+  @Get('buscar')
+  async buscarCargos(
+    @Query('ambiente_id', ParseIntPipe) ambiente_id: number,
+    @Query('search') search: string,
+  ) {
+    return this.cargoRepository.find({
+      where: [
+        { ambiente_id, cargo: ILike(`%${search}%`) },
+        { ambiente_id, codigo: ILike(`%${search}%`) },
+      ],
+      order: { codigo: 'ASC' },
+      take: 10,
+    });
+  }
+
+  // ✅ Búsqueda por ambiente para el módulo de edificios
+  @Get('buscar-por-ambiente')
+  async buscarCargosDesdeEdificio(
+    @Query('ambiente_id', ParseIntPipe) ambiente_id: number,
+    @Query('q') q: string,
+  ) {
+    return this.cargosService.buscarPorAmbiente(ambiente_id, q);
+  }
+
+  // ✅ Generar siguiente código por ambiente
   @Get('siguiente-codigo')
   async siguienteCodigo(@Query('ambiente_codigo') ambienteCodigo: string) {
     if (!ambienteCodigo) {
       throw new Error('El parámetro ambiente_codigo es obligatorio');
     }
 
-    return this.direccionesService.generarCodigoPorAmbiente(ambienteCodigo);
+    return this.cargosService.generarCodigoPorAmbiente(ambienteCodigo);
   }
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.direccionesService.findOne(id);
+    return this.cargosService.findOne(id);
   }
 
   @Put(':id')
@@ -65,16 +91,16 @@ export class CargosController {
     @Req() req: RequestWithUser,
   ) {
     const userId = req.user.id;
-    return this.direccionesService.update(id, dto, userId);
+    return this.cargosService.update(id, dto, userId);
   }
+
   @Put(':id/estado')
   cambiarEstado(
     @Param('id', ParseIntPipe) id: number,
     @Body('estado') estado: 'ACTIVO' | 'INACTIVO',
-    @Req() req: RequestWithUser
+    @Req() req: RequestWithUser,
   ) {
     const userId = req.user.id;
-    return this.direccionesService.cambiarEstado(id, estado, userId);
+    return this.cargosService.cambiarEstado(id, estado, userId);
   }
-
 }

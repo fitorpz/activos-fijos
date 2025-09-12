@@ -1,5 +1,11 @@
 export class CreateEdificioDto {
     codigo_311: string;
+    descripcion_edificio?: string;
+    area_id?: number;
+    nombre_area?: string;
+    codigo_area?: string;
+    unidad_organizacional_id?: number;
+    ambiente_id?: number;
     ingreso_311: string;
     ingreso_des_311: string;
     fecha_alta_311: Date;
