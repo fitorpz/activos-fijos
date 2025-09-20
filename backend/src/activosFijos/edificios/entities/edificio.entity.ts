@@ -26,7 +26,9 @@ export class Edificio {
   @Column({ nullable: true })
   ambiente_id: number;
 
-  // ✅ Campos obligatorios (ya implementados en Datos Generales)
+  @Column({ default: 'ACTIVO', nullable: true })
+  estado: string;
+
   @Column({ nullable: true })
   codigo_311: string;
 
@@ -39,7 +41,6 @@ export class Edificio {
   @Column({ type: 'date', nullable: true })
   fecha_alta_311: Date;
 
-  // ⬇️ Resto de campos como nullable
   @Column({ nullable: true })
   proveedor_311: string;
 
@@ -189,6 +190,9 @@ export class Edificio {
 
   @Column({ nullable: true })
   id_cargo_func: number;
+
+  @Column({ nullable: true })
+  cargo_id: number;
 
   @Column({ nullable: true })
   id_ubi_func: number;

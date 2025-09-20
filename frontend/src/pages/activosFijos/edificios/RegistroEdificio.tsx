@@ -5,127 +5,17 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import '../../../styles/form-styles.css';
 import axiosInstance from '../../../utils/axiosConfig';
 import { useNavigate } from 'react-router-dom';
+import {
+  Area,
+  UnidadOrganizacional,
+  Ambiente,
+  Cargo,
+  Nucleo,
+  DireccionAdministrativa,
+  Auxiliar,
+  FormDataEdificio
+} from '../../../interfaces/interfaces';
 
-
-interface Area {
-    id: number;
-    codigo: string;
-    descripcion: string;
-}
-
-interface UnidadOrganizacional {
-    id: number;
-    codigo: string;
-    descripcion: string;
-}
-
-interface Ambiente {
-    id: number;
-    codigo: string;
-    descripcion: string;
-}
-
-interface Cargo {
-    id: number;
-    codigo: string;
-    cargo: string;
-    descripcion: string;
-}
-
-interface FormDataEdificio {
-    descripcion_edificio: string;
-    area_id: string;
-    unidad_organizacional_id: string;
-    unidad_organizacional: string;
-    ambiente_id: string;
-    ambiente: string;
-    cargo: string;
-    cargo_id: string | number;
-
-    codigo_311: string;
-    ingreso_311: string;
-    ingreso_des_311: string;
-    fecha_alta_311: string;
-    proveedor_311: string;
-    fecha_factura_311: string;
-    num_factura_311: string;
-    observaciones_311: string;
-    estado_conservacion_311: string;
-    valor_311: string;
-    vida_util_311: string;
-    fecha_estado_311: string;
-    descripcion_estado_311: string;
-    estado_311: string;
-    estado_faltante_311: string;
-
-    id_per: string;
-    tdi_per: string;
-    ndi_per: string;
-    expedido_per: string;
-    nombre_per: string;
-    ap_paterno_per: string;
-    ap_materno_per: string;
-    ap_conyuge_per: string;
-    sexo_per: string;
-    f_nacimiento_per: string;
-    c_civil_per: string;
-    profesion_per: string;
-    direccion_per: string;
-    telefono_per: string;
-    celular_per: string;
-    email_per: string;
-    estado_per: string;
-
-    id_clasi_2: string;
-    codigo_clasi: string;
-    nombre_clasi: string;
-    descripcion_clasi: string;
-    id_sg_clasi: string;
-    nombre_sg_clasi: string;
-
-    id_func: string;
-    tipo_func: string;
-    num_file: string;
-    item_func: string;
-    telefono_func: string;
-    interno_func: string;
-    estado_func: string;
-
-    id_cargo_func: string;
-    id_ubi_func: string;
-    id_act_func: string;
-    id_cargo: string;
-    codigo_cargo: string;
-    nombre_cargo: string;
-    descripcion_cargo: string;
-    estado_cargo: string;
-    id_af_cargo: string;
-
-    id_ubi: string;
-    codigo_ubi: string;
-    nombre_ubi: string;
-    direccion_ubi: string;
-    distrito_ubi: string;
-    observaciones_ubi: string;
-    estado_ubi: string;
-
-    id_af: string;
-    codigo_af: string;
-    nombre_af: string;
-    estado_af: string;
-
-    // Opcionales
-    creado_por_id?: number;
-    actualizado_por_id?: number;
-    auxiliar_id?: string;
-    auxiliar?: string;
-}
-
-interface Auxiliar {
-    id: number;
-    codigo: string;
-    descripcion: string;
-}
 
 
 
@@ -205,7 +95,12 @@ const RegistroEdificio = () => {
         nombre_af: '',
         estado_af: '',
         auxiliar_id: '',
-        auxiliar: ''
+        auxiliar: '',
+        nucleo_id: '',
+        distrito: '',
+        direccion_administrativa_id: '',
+        ciudad: '',
+        direccion_administrativa: '',
     });
 
 
@@ -219,10 +114,80 @@ const RegistroEdificio = () => {
     const [cargoInput, setCargoInput] = useState('');
     const [inputCargo, setInputCargo] = useState('');
     const [auxiliarInput, setAuxiliarInput] = useState('');
+    const [unidadSeleccionada, setUnidadSeleccionada] = useState<UnidadOrganizacional | null>(null);
+    const [auxiliarSeleccionado, setAuxiliarSeleccionado] = useState<Auxiliar | null>(null);
     const [sugerenciasAuxiliares, setSugerenciasAuxiliares] = useState<Auxiliar[]>([]);
     const [mostrarSugerenciasAuxiliar, setMostrarSugerenciasAuxiliar] = useState(false);
+    const [nucleos, setNucleos] = useState<Nucleo[]>([]);
+    const [direcciones, setDirecciones] = useState<DireccionAdministrativa[]>([]);
 
-    // Este efecto busca cargos SOLO si hay ambiente seleccionado y algo escrito
+
+
+
+    useEffect(() => {
+        const generarCodigo311 = async () => {
+            if (!formData.direccion_administrativa_id || !unidadSeleccionada || !auxiliarSeleccionado) {
+                console.warn("⛔ No hay datos suficientes para generar el código");
+                return;
+            }
+
+            // Buscar dirección seleccionada (por ID)
+            const direccion = direcciones.find(d => d.id === Number(formData.direccion_administrativa_id));
+            if (!direccion) return;
+
+            // Tomar primer y tercer nivel del auxiliar
+            const partesAux = auxiliarSeleccionado.codigo.split('.');
+            const primerNivel = partesAux[0];     // ej. "312"
+            const tercerNivel = partesAux[2];     // ej. "0001"
+
+            const prefijo = `${direccion.codigo}.${unidadSeleccionada.codigo}.${primerNivel}.${tercerNivel}`;
+            console.log("🔗 Prefijo generado:", prefijo);
+
+            try {
+                const res = await axiosInstance.get<{ correlativo: string }>('/edificios/siguiente-codigo', {
+                    params: { prefijo }
+                });
+
+                const correlativo = res.data.correlativo;
+                const codigo311 = `${prefijo}.${correlativo}`;
+                console.log("✅ Código generado:", codigo311);
+
+                setFormData(prev => ({
+                    ...prev,
+                    codigo_311: codigo311
+                }));
+            } catch (err) {
+                console.error("❌ Error al obtener correlativo:", err);
+                setFormData(prev => ({
+                    ...prev,
+                    codigo_311: `${prefijo}.0001`
+                }));
+            }
+        };
+
+        generarCodigo311();
+    }, [
+        formData.direccion_administrativa_id,
+        unidadSeleccionada,
+        auxiliarSeleccionado
+    ]);
+
+
+
+
+    useEffect(() => {
+        // Cargar nucleos
+        axiosInstance.get<Nucleo[]>('/parametros/nucleos?estado=ACTIVO').then(res => {
+            setNucleos(res.data);
+        });
+
+        // Cargar direcciones administrativas
+        axiosInstance.get<DireccionAdministrativa[]>('/parametros/direcciones-administrativas?estado=ACTIVO').then(res => {
+            setDirecciones(res.data);
+        });
+    }, []);
+
+
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
             console.log("DEBUG: ambiente_id:", formData.ambiente_id, "inputCargo:", inputCargo);
@@ -344,12 +309,6 @@ const RegistroEdificio = () => {
         }
     };
 
-
-
-
-
-
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData((prev: any) => ({ ...prev, [name]: value }));
@@ -391,7 +350,41 @@ const RegistroEdificio = () => {
         setSugerenciasCargos([]);
     };
 
+    // Utilidad para rellenar ceros a la izquierda
+    const padCorrelativo = (num: number) => num.toString().padStart(4, '0');
 
+    // Función para generar el código del edificio
+    const generarCodigoEdificio = async () => {
+        // Busca los objetos completos en los arrays de estado usando el id seleccionado en el form
+        const direccionObj = direcciones.find(d => d.id === Number(formData.direccion_administrativa_id));
+        const unidadObj = sugerenciasUnidad.find(u => u.id === Number(formData.unidad_organizacional_id));
+        const auxiliarObj = sugerenciasAuxiliares.find(a => a.id === Number(formData.auxiliar_id));
+
+        if (direccionObj && unidadObj && auxiliarObj) {
+            // Arma el prefijo
+            const prefijo = `${direccionObj.codigo}.${unidadObj.codigo}.${auxiliarObj.codigo}`;
+            // Llama a endpoint backend para traer el siguiente correlativo disponible
+            try {
+                const res = await axiosInstance.get<{ correlativo: string }>('/edificios/siguiente-codigo', {
+                    params: {
+                        prefijo
+                    }
+                });
+                // El backend debe retornar el correlativo, ejemplo: { correlativo: "0003" }
+                setFormData(prev => ({
+                    ...prev,
+                    codigo_311: `${prefijo}.${res.data.correlativo}`
+                }));
+            } catch (err) {
+                setFormData(prev => ({
+                    ...prev,
+                    codigo_311: `${prefijo}.0001`
+                }));
+            }
+        } else {
+            setFormData(prev => ({ ...prev, codigo_311: '' }));
+        }
+    };
 
 
 
@@ -405,17 +398,7 @@ const RegistroEdificio = () => {
                         {/* Sección 1: Datos Iniciales del Bien */}
                         <Tab eventKey="datos" title="Datos Iniciales del Bien">
                             <div className="row">
-                                <div className="col-md-6 mb-3">
-                                    <label htmlFor="descripcion_edificio" className="form-label">Descripción del Edificio</label>
-                                    <textarea
-                                        className="form-control"
-                                        id="descripcion_edificio"
-                                        name="descripcion_edificio"
-                                        rows={2}
-                                        value={formData.descripcion_edificio || ''}
-                                        onChange={handleChange}
-                                    />
-                                </div>
+
 
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="area_id" className="form-label">Área</label>
@@ -463,9 +446,11 @@ const RegistroEdificio = () => {
                                                             unidad_organizacional_id: unidad.id,
                                                             unidad_organizacional: unidad.descripcion,
                                                         }));
+                                                        setUnidadSeleccionada(unidad); // ← NUEVO
                                                         setUnidadInput(`${unidad.codigo} - ${unidad.descripcion}`);
                                                         setSugerenciasUnidad([]);
                                                     }}
+
                                                     style={{ cursor: 'pointer' }}
                                                 >
                                                     {unidad.codigo} - {unidad.descripcion}
@@ -545,6 +530,9 @@ const RegistroEdificio = () => {
 
                                 </div>
 
+
+
+
                                 <div className="col-md-6 mb-3">
                                     <label className="form-label">Auxiliar</label>
                                     <input
@@ -571,9 +559,11 @@ const RegistroEdificio = () => {
                                                             auxiliar_id: aux.id.toString(),
                                                             auxiliar: aux.descripcion,
                                                         }));
+                                                        setAuxiliarSeleccionado(aux); // ← NUEVO
                                                         setAuxiliarInput(`${aux.codigo} - ${aux.descripcion}`);
                                                         setMostrarSugerenciasAuxiliar(false);
                                                     }}
+
 
                                                     style={{ cursor: 'pointer' }}
                                                 >
@@ -583,12 +573,6 @@ const RegistroEdificio = () => {
                                         </ul>
                                     )}
                                 </div>
-
-
-
-
-
-
 
                                 <input type="hidden" name="cargo_id" value={formData.cargo_id || ''} />
 
@@ -606,9 +590,88 @@ const RegistroEdificio = () => {
                                 />
 
                                 <div className="col-md-6 mb-3">
-                                    <label htmlFor="codigo_311" className="form-label">Código del Edificio</label>
-                                    <input type="text" className="form-control" id="codigo_311" name="codigo_311" value={formData.codigo_311 || ''} onChange={handleChange} required />
+                                    <label htmlFor="nucleo_id" className="form-label">Núcleo</label>
+                                    <select
+                                        className="form-select"
+                                        id="nucleo_id"
+                                        name="nucleo_id"
+                                        value={formData.nucleo_id || ''}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <option value="">Seleccione un núcleo</option>
+                                        {nucleos.map((n) => (
+                                            <option key={n.id} value={n.id}>
+                                                {n.codigo} - {n.descripcion}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="distrito" className="form-label">Distrito</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        id="distrito"
+                                        name="distrito"
+                                        value={formData.distrito || ''}
+                                        onChange={handleChange}
+                                        placeholder="Ingrese el distrito"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="direccion_administrativa_id" className="form-label">Dirección Administrativa</label>
+                                    <select
+                                        className="form-select"
+                                        id="direccion_administrativa_id"
+                                        name="direccion_administrativa_id"
+                                        value={formData.direccion_administrativa_id || ''}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <option value="">Seleccione una dirección</option>
+                                        {direcciones.map((d) => (
+                                            <option key={d.id} value={d.id}>
+                                                {d.codigo} - {d.descripcion}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="ciudad" className="form-label">Ciudad</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        id="ciudad"
+                                        name="ciudad"
+                                        value={formData.ciudad || ''}
+                                        onChange={handleChange}
+                                        placeholder="Ingrese la ciudad"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="codigo_311" className="form-label">Código del Edificio</label>
+                                    <input type="text" className="form-control" id="codigo_311" name="codigo_311" value={formData.codigo_311 || ''} onChange={handleChange} readOnly />
+                                </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="descripcion_edificio" className="form-label">Descripción del Edificio</label>
+                                    <textarea
+                                        className="form-control"
+                                        id="descripcion_edificio"
+                                        name="descripcion_edificio"
+                                        rows={2}
+                                        value={formData.descripcion_edificio || ''}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="ingreso_311" className="form-label">Tipo de Ingreso</label>
                                     <input type="text" className="form-control" id="ingreso_311" name="ingreso_311" value={formData.ingreso_311 || ''} onChange={handleChange} required />

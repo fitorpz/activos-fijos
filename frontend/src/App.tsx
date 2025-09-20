@@ -43,6 +43,7 @@ import EditarNucleo from './pages/parametros/nucleos/EditarNucleo';
 import Ciudades from './pages/parametros/ciudades/Ciudades';
 import RegistroCiudad from './pages/parametros/ciudades/RegistroCiudad';
 import EditarCiudad from './pages/parametros/ciudades/EditarCiudad';
+import ImprimirTickets from './pages/tickets/ImprimirTickets';
 
 
 function App() {
@@ -103,6 +104,7 @@ function App() {
             <Route path="/parametros/ciudades" element={<Ciudades />} />
             <Route path="/parametros/ciudades/nuevo" element={<RegistroCiudad />} />
             <Route path="/parametros/ciudades/editar/:id" element={<EditarCiudad />} />
+            <Route path="/tickets/imprimir" element={<ImprimirTickets />} />
           </Route>
         )}
 

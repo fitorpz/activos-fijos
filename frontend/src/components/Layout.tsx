@@ -108,6 +108,11 @@ const Layout = () => {
                             </a>
                         </li>
                         */}
+                        <li className="nav-item">
+                            <a className="nav-link" href="/tickets/imprimir">
+                                <i className="bi bi-printer-fill"></i> Imprimir Tickets
+                            </a>
+                        </li>
 
 
                         <li className="nav-item">

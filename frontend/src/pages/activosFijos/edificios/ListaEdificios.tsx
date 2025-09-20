@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from '../../../utils/axiosConfig'; // Ajusta ruta según tu estructura
+import axiosInstance from '../../../utils/axiosConfig'; // usa JWT automáticamente
 
 export interface Usuario {
-  id: number;
-  nombre: string;
-  // puedes incluir otros campos si los necesitas
+    id: number;
+    nombre: string;
 }
+
 interface Edificio {
     id_311: number;
     codigo_311: string;
@@ -21,13 +21,37 @@ interface Edificio {
     fecha_actualizacion?: string;
 }
 
-
-
 const ListaEdificios = () => {
     const [edificioSeleccionado, setEdificioSeleccionado] = useState<Edificio | null>(null);
     const [mostrarModal, setMostrarModal] = useState(false);
     const [edificios, setEdificios] = useState<Edificio[]>([]);
+    const [seleccionados, setSeleccionados] = useState<number[]>([]);
+
     const navigate = useNavigate();
+
+    useEffect(() => {
+        obtenerEdificios();
+    }, []);
+
+    const obtenerEdificios = async () => {
+        try {
+            const res = await axiosInstance.get('/edificios');
+            const data = res.data as { data: Edificio[] };
+            setEdificios(data.data);
+        } catch (error) {
+            console.error('Error al obtener edificios:', error);
+        }
+    };
+
+    const eliminarEdificio = async (id: number) => {
+        if (!window.confirm('¿Estás seguro de eliminar este edificio?')) return;
+        try {
+            await axiosInstance.delete(`/edificios/${id}`);
+            obtenerEdificios();
+        } catch (error) {
+            console.error('Error al eliminar edificio:', error);
+        }
+    };
 
     const abrirModal = (edificio: Edificio) => {
         setEdificioSeleccionado(edificio);
@@ -39,28 +63,27 @@ const ListaEdificios = () => {
         setEdificioSeleccionado(null);
     };
 
-    useEffect(() => {
-        obtenerEdificios();
-    }, []);
-
-    const obtenerEdificios = async () => {
-        try {
-            const res = await axios.get('http://localhost:3001/edificios');
-            const data = res.data as { data: Edificio[] }; // 👈 casting
-            setEdificios(data.data);
-
-        } catch (error) {
-            console.error('Error al obtener edificios:', error);
+    const imprimirSeleccionados = async () => {
+        if (seleccionados.length === 0) {
+            alert('Selecciona al menos un edificio para imprimir.');
+            return;
         }
-    };
 
-    const eliminarEdificio = async (id: number) => {
-        if (!window.confirm('¿Estás seguro de eliminar este edificio?')) return;
         try {
-            await axios.delete(`http://localhost:3001/edificios/${id}`);
-            obtenerEdificios();
-        } catch (error) {
-            console.error('Error al eliminar edificio:', error);
+            const res = await axiosInstance.get('/tickets/imprimir-multiple', {
+                params: { ids: seleccionados.join(',') },
+                responseType: 'blob',
+            });
+
+            const blob = new Blob([res.data as BlobPart], { type: 'application/pdf' });
+
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (error: any) {
+            console.error('Error al generar PDF:', error);
+            alert(
+                error?.response?.data?.message || '❌ Error al generar los stickers.'
+            );
         }
     };
 
@@ -70,6 +93,14 @@ const ListaEdificios = () => {
             <button className="btn btn-primary mb-3" onClick={() => navigate('/edificios/nuevo')}>
                 + Nuevo Edificio
             </button>
+
+            {seleccionados.length > 0 && (
+                <div className="mb-3">
+                    <button className="btn btn-success" onClick={imprimirSeleccionados}>
+                        Imprimir Stickers Seleccionados
+                    </button>
+                </div>
+            )}
 
             <div className="table-responsive">
                 <table className="table table-bordered table-striped table-hover align-middle">
@@ -86,6 +117,7 @@ const ListaEdificios = () => {
                             <th>Modificado por</th>
                             <th>Fecha Modificación</th>
                             <th>Acciones</th>
+                            <th>Seleccionar</th>
                         </tr>
                     </thead>
 
@@ -93,7 +125,7 @@ const ListaEdificios = () => {
                         {edificios.length > 0 ? (
                             edificios.map((edificio, index) => (
                                 <tr key={edificio.id_311}>
-                                    <td>{index + 1}</td> {/* Número correlativo */}
+                                    <td>{index + 1}</td>
                                     <td>{edificio.codigo_311 || '—'}</td>
                                     <td>{edificio.fecha_alta_311 ? new Date(edificio.fecha_alta_311).toLocaleDateString('es-BO') : '—'}</td>
                                     <td>{(edificio.ingreso_311 || '—') + ' - ' + (edificio.ingreso_des_311 || '—')}</td>
@@ -123,11 +155,26 @@ const ListaEdificios = () => {
                                             Ver
                                         </button>
                                     </td>
+                                    <td>
+                                        <input
+                                            type="checkbox"
+                                            checked={seleccionados.includes(edificio.id_311)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSeleccionados([...seleccionados, edificio.id_311]);
+                                                } else {
+                                                    setSeleccionados(
+                                                        seleccionados.filter(id => id !== edificio.id_311)
+                                                    );
+                                                }
+                                            }}
+                                        />
+                                    </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={10} className="text-center">
+                                <td colSpan={12} className="text-center">
                                     No hay edificios registrados.
                                 </td>
                             </tr>
