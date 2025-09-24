@@ -33,19 +33,18 @@ export class CiudadesService {
 
     return this.ciudadRepo.save(nueva);
   }
-
-  async findAll(estado?: string): Promise<Ciudad[]> {
+  async findAll(estado?: string): Promise<Partial<Ciudad>[]> {
     const query = this.ciudadRepo.createQueryBuilder('ciudad')
-      .leftJoinAndSelect('ciudad.creado_por', 'creado_por')
-      .leftJoinAndSelect('ciudad.actualizado_por', 'actualizado_por')
-      .orderBy('ciudad.id', 'DESC');
+      .select(['ciudad.id', 'ciudad.descripcion']) // solo lo necesario para el select
+      .orderBy('ciudad.descripcion', 'ASC');
 
     if (estado && estado !== 'todos') {
-      query.andWhere('ciudad.estado = :estado', { estado: estado.toUpperCase() });
+      query.where('ciudad.estado = :estado', { estado: estado.toUpperCase() });
     }
 
     return query.getMany();
   }
+
 
   async findOne(id: number): Promise<Ciudad> {
     const ciudad = await this.ciudadRepo.findOne({

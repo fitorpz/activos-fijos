@@ -26,6 +26,7 @@ const parametros = [
             { label: 'Direcciones Administrativas', path: '/parametros/direcciones-administrativas' },
             { label: 'Ciudades', path: '/parametros/ciudades' },
             { label: 'Nucleos', path: '/parametros/nucleos' },
+            { label: 'Distritos', path: '/parametros/distritos' },
         ],
     },
     {

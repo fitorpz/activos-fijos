@@ -6,7 +6,7 @@ const categorias = [
         titulo: 'EDIFICIOS - TIERRAS Y TERRENOS',
         icono: 'bi-building',
         color: 'primary',
-        items: ['Edificios', 'Tierras y Terrenos'],
+        items: ['Edificios',],
     },
     {
         titulo: 'EQUIPO DE OFICINA Y MUEBLES',
@@ -72,7 +72,7 @@ const categorias = [
         titulo: 'REPORTES POR...',
         icono: 'bi-graph-up',
         color: 'warning',
-        items: ['Persona', 'Unidad Organizacional', 'Grupo'],
+        items: ['Persona', 'Unidad Organizacional', 'Grupo', 'UFV'],
     },
 ];
 
@@ -106,8 +106,9 @@ const Dashboard = () => {
                                                     className="btn btn-link text-decoration-none p-0"
                                                     onClick={() => {
                                                         if (item === 'Edificios') navigate('/edificios');
-                                                        // Agrega más rutas aquí si quieres para 'Tierras y Terrenos', etc.
+                                                        if (item === 'UFV') navigate('/ufvs');   // ✅ nueva ruta
                                                     }}
+
                                                 >
                                                     <i className="bi bi-chevron-right me-2"></i> {item}
                                                 </button>

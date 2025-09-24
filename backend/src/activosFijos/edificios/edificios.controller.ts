@@ -10,18 +10,25 @@ import {
     UseGuards,
     ParseIntPipe,
     Query,
+    Res,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository } from 'typeorm';
 import { EdificiosService } from './edificios.service';
 import { CreateEdificioDto } from './dto/create-edificio.dto';
 import { UpdateEdificioDto } from './dto/update-edificio.dto';
-import type { RequestWithUser } from '../../interfaces/request-with-user.interface';
 import { Edificio } from './entities/edificio.entity';
+import type { RequestWithUser } from '../../interfaces/request-with-user.interface';
+
+// ⬇️ IMPORTS para generación de PDF
+import * as fs from 'fs';
+import * as path from 'path';
+import type { Response } from 'express';
+import { generarPDFDesdeHTML } from '../../pdf/generarPDF';
 
 @Controller('edificios')
-@UseGuards(AuthGuard('jwt')) // Protege todas las rutas
+@UseGuards(AuthGuard('jwt'))
 export class EdificiosController {
     constructor(
         private readonly edificiosService: EdificiosService,
@@ -29,12 +36,8 @@ export class EdificiosController {
         private readonly edificioRepository: Repository<Edificio>,
     ) { }
 
-    // Crear un edificio
     @Post()
-    async create(
-        @Body() dto: CreateEdificioDto,
-        @Req() req: RequestWithUser,
-    ) {
+    async create(@Body() dto: CreateEdificioDto, @Req() req: RequestWithUser) {
         const userId = req.user.id;
         const result = await this.edificiosService.create(dto, userId);
         return {
@@ -43,7 +46,6 @@ export class EdificiosController {
         };
     }
 
-    // Obtener un edificio por ID
     @Get(':id')
     async findOne(
         @Param('id', ParseIntPipe) id: number,
@@ -56,12 +58,9 @@ export class EdificiosController {
         };
     }
 
-    // Listar todos los edificios activos (con creadoPor y actualizadoPor)
     @Get()
-    async findAll() {
-        const edificios = await this.edificiosService.findAll();
-
-        // Mapear para devolver nombre de usuarios si existen
+    async findAll(@Query('estado') estado?: string) {
+        const edificios = await this.edificiosService.findAll(estado);
         const resultado = edificios.map((e) => ({
             ...e,
             creado_por: e.creadoPor?.nombre || null,
@@ -78,7 +77,6 @@ export class EdificiosController {
     async getSiguienteCodigo(
         @Query('prefijo') prefijo: string,
     ): Promise<{ correlativo: string }> {
-        // El prefijo debe llegar así: "DA4.E2.002.312.0001"
         const last = await this.edificioRepository
             .createQueryBuilder('edificio')
             .where('edificio.codigo_311 LIKE :prefijo', { prefijo: `${prefijo}.%` })
@@ -95,9 +93,6 @@ export class EdificiosController {
         return { correlativo };
     }
 
-
-
-    // Actualizar un edificio
     @Put(':id')
     async update(
         @Param('id', ParseIntPipe) id: number,
@@ -112,20 +107,60 @@ export class EdificiosController {
         };
     }
 
-    // Eliminar un edificio (soft delete)
     @Delete(':id')
     async remove(@Param('id', ParseIntPipe) id: number) {
         const result = await this.edificiosService.remove(id);
         return result;
     }
 
-    // Restaurar un edificio eliminado
     @Put('restaurar/:id')
     async restore(@Param('id', ParseIntPipe) id: number) {
         const result = await this.edificiosService.restore(id);
-        return {
-            message: `Edificio con ID ${id} restaurado correctamente`,
-            data: result,
-        };
+        return result;
     }
+
+    // ✅ Exportar PDF (nuevo método completo y corregido)
+    @Get('exportar/pdf')
+    async exportarPDF(@Res() res: Response, @Query('estado') estado: string) {
+        try {
+            const edificios = await this.edificiosService.findAll(estado); // ✅ ahora filtra por estado
+
+            const filasHTML = edificios
+                .map(
+                    (e, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${e.codigo_311 || '-'}</td>
+        <td>${e.descripcion_edificio || 'Sin descripción'}</td>
+        <td>${e.nombre_area || '-'}</td>
+        <td>${(e as any).unidad_organizacional_nombre || '-'}</td>
+        <td>${(e as any).ambiente_nombre || '-'}</td>
+        <td>${e.estado || '-'}</td>
+      </tr>
+    `,
+                )
+                .join('');
+
+            const templatePath = path.join(
+                process.cwd(),
+                'templates',
+                'pdf',
+                'activosFijos',
+                'edificios-pdf.html',
+            );
+
+            let html = fs.readFileSync(templatePath, 'utf-8');
+            html = html.replace('<!-- FILAS_EDIFICIOS -->', filasHTML);
+
+            const buffer = await generarPDFDesdeHTML(html);
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', 'inline; filename=edificios.pdf');
+            res.end(buffer);
+        } catch (error) {
+            console.error('❌ Error al generar PDF de edificios:', error);
+            return res.status(500).json({ message: 'Error al exportar PDF' });
+        }
+    }
+
 }

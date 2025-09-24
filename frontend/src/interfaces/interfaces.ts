@@ -128,7 +128,7 @@ export interface FormDataEdificio {
   nucleo_id: string;
   distrito: string;
   direccion_administrativa_id: string;
-  ciudad: string;
+  ciudad_id: number | '';
   direccion_administrativa: string;
 
 }
@@ -137,4 +137,15 @@ export interface Auxiliar {
   id: number;
   codigo: string;
   descripcion: string;
+}
+
+export interface Ciudad {
+  id: number;
+  codigo: string;
+  descripcion: string;
+}
+
+export interface Distrito {
+    id: number;
+    descripcion: string;
 }

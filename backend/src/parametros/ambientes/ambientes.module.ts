@@ -13,6 +13,7 @@ import { UsuariosModule } from 'src/usuarios/usuarios.module'; // ✅ Asegúrate
     TypeOrmModule.forFeature([Ambiente, UnidadOrganizacional, Usuario]),
     UsuariosModule, // ✅ Agregado aquí
   ],
+  exports: [TypeOrmModule],
   controllers: [AmbientesController],
   providers: [AmbientesService],
 })

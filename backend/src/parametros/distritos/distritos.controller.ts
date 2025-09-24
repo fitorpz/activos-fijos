@@ -3,30 +3,32 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Ciudad } from './entities/ciudades.entity';
+import { Distrito } from './entities/distritos.entity';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { CreateCiudadesDto } from './dto/create-ciudades.dto';
-import { UpdateCiudadesDto } from './dto/update-ciudades.dto';
-import { CiudadesService } from './ciudades.service';
+import { CreateDistritosDto } from './dto/create-distritos.dto';
+import { UpdateDistritosDto } from './dto/update-distritos.dto';
+import { DistritosService } from './distritos.service';
 import type { RequestWithUser } from 'src/interfaces/request-with-user.interface';
 import type { Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import { generarPDFDesdeHTML } from '../../pdf/generarPDF';
+import { ILike } from 'typeorm';
 
-@Controller('parametros/ciudades')
+
+@Controller('parametros/distritos')
 @UseGuards(JwtAuthGuard)
-export class CiudadesController {
+export class DistritosController {
   constructor(
-    private readonly ciudadesService: CiudadesService,
-    @InjectRepository(Ciudad)
-    private readonly ciudadRepository: Repository<Ciudad>,
+    private readonly distritosService: DistritosService,
+    @InjectRepository(Distrito)
+    private readonly ciudadRepository: Repository<Distrito>,
   ) { }
 
   @Post()
-  create(@Body() dto: CreateCiudadesDto, @Req() req: RequestWithUser) {
+  create(@Body() dto: CreateDistritosDto, @Req() req: RequestWithUser) {
     const userId = req.user.id;
-    return this.ciudadesService.create(dto, userId);
+    return this.distritosService.create(dto, userId);
   }
 
   @Get('verificar-codigo/:codigo')
@@ -40,55 +42,45 @@ export class CiudadesController {
   @Get()
   findAll(@Req() req: RequestWithUser) {
     const estado = req.query.estado as string;
-    return this.ciudadesService.findAll(estado);
-  }
-
-  @Get('listar')
-  async listarCiudadesActivas(): Promise<Partial<Ciudad>[]> {
-    return this.ciudadesService.findAll('ACTIVO');
+    return this.distritosService.findAll(estado);
   }
 
   @Get('buscar')
-  async buscarCiudades(@Query('q') texto: string) {
-    const ciudades = await this.ciudadRepository.createQueryBuilder('ciudad')
-      .select(['ciudad.id', 'ciudad.codigo', 'ciudad.descripcion'])
-      .where('(ciudad.codigo ILIKE :q OR ciudad.descripcion ILIKE :q)', { q: `%${texto}%` })
-      .andWhere('ciudad.estado = :estado', { estado: 'ACTIVO' })
-      .orderBy('ciudad.descripcion', 'ASC')
-      .limit(10)
-      .getMany();
-
-    return { data: ciudades };
+  async buscarDistritos(@Query('q') q: string) {
+    const distritos = await this.ciudadRepository.find({
+      where: { descripcion: ILike(`%${q}%`) },
+      take: 10,
+    });
+    return { data: distritos };
   }
-
 
 
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.ciudadesService.findOne(id);
+    return this.distritosService.findOne(id);
   }
 
   @Put(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateCiudadesDto,
+    @Body() dto: UpdateDistritosDto,
     @Req() req: RequestWithUser,
   ) {
     const userId = req.user.id;
-    return this.ciudadesService.update(id, dto, userId);
+    return this.distritosService.update(id, dto, userId);
   }
 
   @Put(':id/cambiar-estado')
   cambiarEstado(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithUser) {
     const userId = req.user.id;
-    return this.ciudadesService.cambiarEstado(id, userId);
+    return this.distritosService.cambiarEstado(id, userId);
   }
 
   @Get('exportar/pdf')
   async exportarPDF(@Res() res: Response, @Query('estado') estado: string) {
     try {
-      const ciudades = await this.ciudadesService.findAll(estado);
+      const ciudades = await this.distritosService.findAll(estado);
 
       const filasHTML = ciudades.map((ciudad, index) => `
         <tr>
@@ -99,9 +91,9 @@ export class CiudadesController {
         </tr>
       `).join('');
 
-      const templatePath = path.join(process.cwd(), 'templates', 'pdf', 'parametros', 'ciudades-pdf.html');
+      const templatePath = path.join(process.cwd(), 'templates', 'pdf', 'parametros', 'distritos-pdf.html');
       let html = fs.readFileSync(templatePath, 'utf-8');
-      html = html.replace('<!-- FILAS_CIUDADES -->', filasHTML);
+      html = html.replace('<!-- FILAS_DISTRITOS -->', filasHTML);
 
       const buffer = await generarPDFDesdeHTML(html);
 

@@ -4,6 +4,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
 import { UserLogModule } from './user-log/user-log.module';
 import { AuthModule } from './auth/auth.module';
 import { EdificiosModule } from './activosFijos/edificios/edificios.module';
+import { UfvsModule } from './activosFijos/ufvs/ufvs.module';
 import { EquipoOficinaModule } from './equipo-oficina/equipo-oficina.module';
 import { DireccionesAdministrativasModule } from './parametros/direcciones-administrativas/direcciones-administrativas.module';
 import { UnidadesOrganizacionalesModule } from './parametros/unidades-organizacionales/unidades-organizacionales.module';
@@ -16,6 +17,8 @@ import { CargosModule } from './parametros/cargos/cargos.module';
 import { NucleosModule } from './parametros/nucleos/nucleos.module';
 import { CiudadesModule } from './parametros/ciudades/ciudades.module';
 import { TicketsModule } from './tickets/tickets.module';
+import { DistritosModule } from './parametros/distritos/distritos.module';
+
 
 
 
@@ -55,6 +58,7 @@ import { TicketsModule } from './tickets/tickets.module';
     UserLogModule,
     AuthModule,
     EdificiosModule,
+    UfvsModule,
     EquipoOficinaModule,
     DireccionesAdministrativasModule,
     UnidadesOrganizacionalesModule,
@@ -65,6 +69,7 @@ import { TicketsModule } from './tickets/tickets.module';
     PersonalesModule,
     CargosModule,
     NucleosModule,
+    DistritosModule,
     CiudadesModule,
     TicketsModule,
   ],

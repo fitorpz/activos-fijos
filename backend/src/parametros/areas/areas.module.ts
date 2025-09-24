@@ -12,6 +12,7 @@ import { Usuario } from '../../usuarios/entities/usuario.entity';
       Usuario,
     ]),
   ],
+  exports: [TypeOrmModule],
   controllers: [AreasController],
   providers: [AreasService],
 })

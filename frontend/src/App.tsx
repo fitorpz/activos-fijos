@@ -12,6 +12,13 @@ import Usuarios from './pages/Usuarios';
 import ListaEdificios from './pages/activosFijos/edificios/ListaEdificios';
 import RegistroEdificio from './pages/activosFijos/edificios/RegistroEdificio';
 import EditarEdificio from './pages/activosFijos/edificios/EditarEdificio';
+
+
+import Ufvs from './pages/activosFijos/ufvs/ufvs';
+import RegistroUfv from './pages/activosFijos/ufvs/RegistroUfv';
+import EditarUfv from './pages/activosFijos/ufvs/EditarUfv';
+
+
 import Parametros from './pages/parametros/Parametros';
 import DireccionesAdministrativas from './pages/parametros/direcciones-administrativas/DireccionesAdministrativas';
 import RegistroDireccionAdministrativa from './pages/parametros/direcciones-administrativas/RegistroDireccionAdministrativa';
@@ -44,6 +51,9 @@ import Ciudades from './pages/parametros/ciudades/Ciudades';
 import RegistroCiudad from './pages/parametros/ciudades/RegistroCiudad';
 import EditarCiudad from './pages/parametros/ciudades/EditarCiudad';
 import ImprimirTickets from './pages/tickets/ImprimirTickets';
+import Distritos from './pages/parametros/distritos/Distritos';
+import RegistroDistrito from './pages/parametros/distritos/RegistroDistritos';
+import EditarDistrito from './pages/parametros/distritos/EditarDistritos';
 
 
 function App() {
@@ -73,6 +83,11 @@ function App() {
             <Route path="/edificios" element={<ListaEdificios />} />
             <Route path="/edificios/nuevo" element={<RegistroEdificio />} />
             <Route path="/edificios/editar/:id" element={<EditarEdificio />} />
+
+            <Route path="/ufvs" element={<Ufvs />} />
+            <Route path="/ufvs/nuevo" element={<RegistroUfv />} />
+            <Route path="/ufvs/editar/:id" element={<EditarUfv />} />
+
             <Route path="/parametros" element={<Parametros />} />
             <Route path="/parametros/direcciones-administrativas" element={<DireccionesAdministrativas />} />
             <Route path="/parametros/direcciones-administrativas/nueva" element={<RegistroDireccionAdministrativa />} />
@@ -105,6 +120,9 @@ function App() {
             <Route path="/parametros/ciudades/nuevo" element={<RegistroCiudad />} />
             <Route path="/parametros/ciudades/editar/:id" element={<EditarCiudad />} />
             <Route path="/tickets/imprimir" element={<ImprimirTickets />} />
+            <Route path="/parametros/distritos" element={<Distritos />} />
+            <Route path="/parametros/distritos/nuevo" element={<RegistroDistrito />} />
+            <Route path="/parametros/distritos/editar/:id" element={<EditarDistrito />} />
           </Route>
         )}
 

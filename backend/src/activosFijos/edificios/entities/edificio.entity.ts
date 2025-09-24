@@ -24,7 +24,13 @@ export class Edificio {
   unidad_organizacional_id: number;
 
   @Column({ nullable: true })
+  unidad_organizacional_nombre: string;
+
+  @Column({ nullable: true })
   ambiente_id: number;
+
+  @Column({ nullable: true })
+  ambiente_nombre: string;
 
   @Column({ default: 'ACTIVO', nullable: true })
   estado: string;
@@ -250,9 +256,6 @@ export class Edificio {
 
   @Column({ nullable: true })
   estado_af: string;
-
-  @DeleteDateColumn({ type: 'timestamp', nullable: true })
-  deleted_at?: Date;
 
   @CreateDateColumn()
   fecha_creacion: Date;

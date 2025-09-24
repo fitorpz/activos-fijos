@@ -6,17 +6,17 @@ import '../../../styles/form-styles.css';
 import axiosInstance from '../../../utils/axiosConfig';
 import { useNavigate } from 'react-router-dom';
 import {
-  Area,
-  UnidadOrganizacional,
-  Ambiente,
-  Cargo,
-  Nucleo,
-  DireccionAdministrativa,
-  Auxiliar,
-  FormDataEdificio
+    Area,
+    UnidadOrganizacional,
+    Ambiente,
+    Cargo,
+    Nucleo,
+    DireccionAdministrativa,
+    Auxiliar,
+    FormDataEdificio,
+    Ciudad,
+    Distrito
 } from '../../../interfaces/interfaces';
-
-
 
 
 const RegistroEdificio = () => {
@@ -99,7 +99,7 @@ const RegistroEdificio = () => {
         nucleo_id: '',
         distrito: '',
         direccion_administrativa_id: '',
-        ciudad: '',
+        ciudad_id: '',
         direccion_administrativa: '',
     });
 
@@ -120,8 +120,50 @@ const RegistroEdificio = () => {
     const [mostrarSugerenciasAuxiliar, setMostrarSugerenciasAuxiliar] = useState(false);
     const [nucleos, setNucleos] = useState<Nucleo[]>([]);
     const [direcciones, setDirecciones] = useState<DireccionAdministrativa[]>([]);
+    const [distritoInput, setDistritoInput] = useState('');
+    const [sugerenciasDistritos, setSugerenciasDistritos] = useState<any[]>([]);
+    const [ciudadInput, setCiudadInput] = useState('');
+    const [sugerenciasCiudades, setSugerenciasCiudades] = useState<Ciudad[]>([]);
 
 
+    useEffect(() => {
+        if (ciudadInput.trim() === '') {
+            setSugerenciasCiudades([]);
+            return;
+        }
+
+        const delay = setTimeout(async () => {
+            try {
+                const res = await axiosInstance.get<{ data: Ciudad[] }>(`/parametros/ciudades/buscar?q=${ciudadInput}`);
+                setSugerenciasCiudades(res.data.data);
+            } catch (error) {
+                console.error('Error al buscar ciudades:', error);
+            }
+        }, 300);
+
+        return () => clearTimeout(delay);
+    }, [ciudadInput]);
+
+
+    useEffect(() => {
+        if (distritoInput.trim() === '') {
+            setSugerenciasDistritos([]);
+            return;
+        }
+
+        const delay = setTimeout(async () => {
+            try {
+                const res = await axiosInstance.get<{ data: Distrito[] }>(
+                    `/parametros/distritos/buscar?q=${distritoInput}`
+                );
+                setSugerenciasDistritos(res.data.data);
+            } catch (error) {
+                console.error('Error al buscar distritos:', error);
+            }
+        }, 300);
+
+        return () => clearTimeout(delay);
+    }, [distritoInput]);
 
 
     useEffect(() => {
@@ -608,19 +650,41 @@ const RegistroEdificio = () => {
                                     </select>
                                 </div>
 
-                                <div className="col-md-6 mb-3">
+                                <div className="col-md-6 mb-3 position-relative">
                                     <label htmlFor="distrito" className="form-label">Distrito</label>
                                     <input
                                         type="text"
                                         className="form-control"
                                         id="distrito"
                                         name="distrito"
-                                        value={formData.distrito || ''}
-                                        onChange={handleChange}
-                                        placeholder="Ingrese el distrito"
-                                        required
+                                        autoComplete="off"
+                                        value={distritoInput}
+                                        onChange={(e) => {
+                                            setDistritoInput(e.target.value);
+                                            setFormData({ ...formData, distrito: e.target.value });
+                                        }}
+                                        placeholder="Buscar distrito existente..."
                                     />
+                                    {(sugerenciasDistritos.length > 0) && (
+                                        <ul className="list-group position-absolute w-100 zindex-tooltip">
+                                            {sugerenciasDistritos.map((distrito) => (
+                                                <li
+                                                    key={distrito.id}
+                                                    className="list-group-item list-group-item-action"
+                                                    onClick={() => {
+                                                        setDistritoInput(distrito.descripcion);
+                                                        setFormData({ ...formData, distrito: distrito.descripcion });
+                                                        setSugerenciasDistritos([]);
+                                                    }}
+                                                >
+                                                    {distrito.descripcion}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+
                                 </div>
+
 
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="direccion_administrativa_id" className="form-label">Dirección Administrativa</label>
@@ -641,19 +705,41 @@ const RegistroEdificio = () => {
                                     </select>
                                 </div>
 
-                                <div className="col-md-6 mb-3">
-                                    <label htmlFor="ciudad" className="form-label">Ciudad</label>
+                                <div className="col-md-6 mb-3 position-relative">
+                                    <label htmlFor="ciudad_id" className="form-label">Ciudad</label>
                                     <input
                                         type="text"
                                         className="form-control"
-                                        id="ciudad"
-                                        name="ciudad"
-                                        value={formData.ciudad || ''}
-                                        onChange={handleChange}
-                                        placeholder="Ingrese la ciudad"
-                                        required
+                                        id="ciudad_id"
+                                        name="ciudad_id"
+                                        placeholder="Buscar ciudad..."
+                                        value={ciudadInput}
+                                        onChange={(e) => {
+                                            const texto = e.target.value;
+                                            setCiudadInput(texto);
+                                        }}
+                                        autoComplete="off"
                                     />
+                                    {sugerenciasCiudades.length > 0 && (
+                                        <ul className="list-group position-absolute w-100 z-3" style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                                            {sugerenciasCiudades.map((ciudad) => (
+                                                <li
+                                                    key={ciudad.id}
+                                                    className="list-group-item list-group-item-action"
+                                                    onClick={() => {
+                                                        setFormData({ ...formData, ciudad_id: ciudad.id });
+                                                        setCiudadInput(`${ciudad.codigo} - ${ciudad.descripcion}`);
+                                                        setSugerenciasCiudades([]);
+                                                    }}
+                                                    style={{ cursor: 'pointer' }}
+                                                >
+                                                    {ciudad.codigo} - {ciudad.descripcion}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
+
 
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="codigo_311" className="form-label">Código del Edificio</label>
