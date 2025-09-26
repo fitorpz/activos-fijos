@@ -101,6 +101,20 @@ const RegistroEdificio = () => {
         direccion_administrativa_id: '',
         ciudad_id: '',
         direccion_administrativa: '',
+        estado_activo: '',
+
+        clasificacion_311_1: '',
+        uso_311_1: '',
+        superficie_311_1: '',
+
+        // servicios básicos individuales para checkboxes (opcional si decides no usar un solo campo string)
+        energia_electrica: false,
+        gas_domiciliario: false,
+        alcantarillado: false,
+        agua: false,
+        telefono: false,
+        celular: false,
+        internet: false,
     });
 
 
@@ -120,50 +134,28 @@ const RegistroEdificio = () => {
     const [mostrarSugerenciasAuxiliar, setMostrarSugerenciasAuxiliar] = useState(false);
     const [nucleos, setNucleos] = useState<Nucleo[]>([]);
     const [direcciones, setDirecciones] = useState<DireccionAdministrativa[]>([]);
-    const [distritoInput, setDistritoInput] = useState('');
-    const [sugerenciasDistritos, setSugerenciasDistritos] = useState<any[]>([]);
-    const [ciudadInput, setCiudadInput] = useState('');
-    const [sugerenciasCiudades, setSugerenciasCiudades] = useState<Ciudad[]>([]);
+
+    // 🔽 Agrega justo después de const [direcciones, setDirecciones] = useState...
+    const [distritos, setDistritos] = useState<Distrito[]>([]); // ✅ así
+    const [ciudades, setCiudades] = useState<Ciudad[]>([]);     // ✅ así
 
 
     useEffect(() => {
-        if (ciudadInput.trim() === '') {
-            setSugerenciasCiudades([]);
-            return;
-        }
-
-        const delay = setTimeout(async () => {
+        const fetchCiudadesYDistritos = async () => {
             try {
-                const res = await axiosInstance.get<{ data: Ciudad[] }>(`/parametros/ciudades/buscar?q=${ciudadInput}`);
-                setSugerenciasCiudades(res.data.data);
+                const resCiudades = await axiosInstance.get<Ciudad[]>('/parametros/ciudades?estado=ACTIVO');
+                const resDistritos = await axiosInstance.get<Distrito[]>('/parametros/distritos?estado=ACTIVO');
+
+                setCiudades(resCiudades.data);
+                setDistritos(resDistritos.data);
             } catch (error) {
-                console.error('Error al buscar ciudades:', error);
+                console.error('Error al cargar ciudades y distritos:', error);
             }
-        }, 300);
+        };
 
-        return () => clearTimeout(delay);
-    }, [ciudadInput]);
+        fetchCiudadesYDistritos();
+    }, []);
 
-
-    useEffect(() => {
-        if (distritoInput.trim() === '') {
-            setSugerenciasDistritos([]);
-            return;
-        }
-
-        const delay = setTimeout(async () => {
-            try {
-                const res = await axiosInstance.get<{ data: Distrito[] }>(
-                    `/parametros/distritos/buscar?q=${distritoInput}`
-                );
-                setSugerenciasDistritos(res.data.data);
-            } catch (error) {
-                console.error('Error al buscar distritos:', error);
-            }
-        }, 300);
-
-        return () => clearTimeout(delay);
-    }, [distritoInput]);
 
 
     useEffect(() => {
@@ -362,9 +354,23 @@ const RegistroEdificio = () => {
         e.preventDefault();
 
         try {
-            const payload = Object.fromEntries(
-                Object.entries(formData).filter(([_, v]) => v !== '' && v !== null)
-            );
+            const serviciosSeleccionados = [
+                formData.energia_electrica && 'energia electrica',
+                formData.gas_domiciliario && 'gas domiciliario',
+                formData.alcantarillado && 'alcantarillado',
+                formData.agua && 'agua',
+                formData.telefono && 'telefono',
+                formData.celular && 'celular',
+                formData.internet && 'internet',
+            ].filter(Boolean); // elimina falsos
+
+            const payload = {
+                ...Object.fromEntries(
+                    Object.entries(formData).filter(([_, v]) => v !== '' && v !== null)
+                ),
+                servicio_311_1: serviciosSeleccionados.join(', '), // 👈 importante
+            };
+
 
             const response = await axiosInstance.post('/edificios', payload);
 
@@ -650,40 +656,27 @@ const RegistroEdificio = () => {
                                     </select>
                                 </div>
 
-                                <div className="col-md-6 mb-3 position-relative">
+                                <div className="col-md-6 mb-3">
                                     <label htmlFor="distrito" className="form-label">Distrito</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
+                                    <select
+                                        className="form-select"
                                         id="distrito"
                                         name="distrito"
-                                        autoComplete="off"
-                                        value={distritoInput}
-                                        onChange={(e) => {
-                                            setDistritoInput(e.target.value);
-                                            setFormData({ ...formData, distrito: e.target.value });
-                                        }}
-                                        placeholder="Buscar distrito existente..."
-                                    />
-                                    {(sugerenciasDistritos.length > 0) && (
-                                        <ul className="list-group position-absolute w-100 zindex-tooltip">
-                                            {sugerenciasDistritos.map((distrito) => (
-                                                <li
-                                                    key={distrito.id}
-                                                    className="list-group-item list-group-item-action"
-                                                    onClick={() => {
-                                                        setDistritoInput(distrito.descripcion);
-                                                        setFormData({ ...formData, distrito: distrito.descripcion });
-                                                        setSugerenciasDistritos([]);
-                                                    }}
-                                                >
-                                                    {distrito.descripcion}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
+                                        value={formData.distrito || ''}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <option value="">Seleccione un distrito</option>
+                                        {Array.isArray(distritos) && distritos.map((d) => (
+                                            <option key={d.id} value={d.descripcion}>
+                                                {d.codigo} - {d.descripcion}
+                                            </option>
+                                        ))}
+                                    </select>
 
                                 </div>
+
+
 
 
                                 <div className="col-md-6 mb-3">
@@ -705,39 +698,23 @@ const RegistroEdificio = () => {
                                     </select>
                                 </div>
 
-                                <div className="col-md-6 mb-3 position-relative">
+                                <div className="col-md-6 mb-3">
                                     <label htmlFor="ciudad_id" className="form-label">Ciudad</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
+                                    <select
+                                        className="form-select"
                                         id="ciudad_id"
                                         name="ciudad_id"
-                                        placeholder="Buscar ciudad..."
-                                        value={ciudadInput}
-                                        onChange={(e) => {
-                                            const texto = e.target.value;
-                                            setCiudadInput(texto);
-                                        }}
-                                        autoComplete="off"
-                                    />
-                                    {sugerenciasCiudades.length > 0 && (
-                                        <ul className="list-group position-absolute w-100 z-3" style={{ maxHeight: '180px', overflowY: 'auto' }}>
-                                            {sugerenciasCiudades.map((ciudad) => (
-                                                <li
-                                                    key={ciudad.id}
-                                                    className="list-group-item list-group-item-action"
-                                                    onClick={() => {
-                                                        setFormData({ ...formData, ciudad_id: ciudad.id });
-                                                        setCiudadInput(`${ciudad.codigo} - ${ciudad.descripcion}`);
-                                                        setSugerenciasCiudades([]);
-                                                    }}
-                                                    style={{ cursor: 'pointer' }}
-                                                >
-                                                    {ciudad.codigo} - {ciudad.descripcion}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
+                                        value={formData.ciudad_id || ''}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <option value="">Seleccione una ciudad</option>
+                                        {Array.isArray(ciudades) && ciudades.map((c) => (
+                                            <option key={c.id} value={c.id}>
+                                                {c.descripcion}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
 
 
@@ -745,6 +722,26 @@ const RegistroEdificio = () => {
                                     <label htmlFor="codigo_311" className="form-label">Código del Edificio</label>
                                     <input type="text" className="form-control" id="codigo_311" name="codigo_311" value={formData.codigo_311 || ''} onChange={handleChange} readOnly />
                                 </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="estado_activo" className="form-label">Estado del Activo</label>
+                                    <select
+                                        className="form-select"
+                                        id="estado_activo"
+                                        name="estado_activo"
+                                        value={formData.estado_activo}
+                                        onChange={handleChange}
+                                    >
+                                        <option value="">Seleccione un estado</option>
+                                        <option value="EXCELENTE_NUEVO">Excelente nuevo</option>
+                                        <option value="BUENO">Bueno</option>
+                                        <option value="REGULAR">Regular</option>
+                                        <option value="MALO">Malo</option>
+                                        <option value="PESIMO_DAR_DE_BAJA">Pésimo (dar de baja)</option>
+                                        <option value="NO_ENCONTRADO">No encontrado</option>
+                                    </select>
+                                </div>
+
 
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="descripcion_edificio" className="form-label">Descripción del Edificio</label>
@@ -774,61 +771,120 @@ const RegistroEdificio = () => {
                         </Tab>
 
                         {/* Secciones siguientes (a completar posteriormente) */}
-                        <Tab eventKey="legal" title="Información Legal y de Compra">
+
+                        <Tab eventKey="tecnico" title="Datos Técnicos del Bien">
                             <div className="row">
                                 <div className="col-md-6 mb-3">
-                                    <label htmlFor="proveedor_311" className="form-label">Proveedor</label>
+                                    <label htmlFor="descripcion_edificio" className="form-label">Nombre del Bien</label>
                                     <input
                                         type="text"
                                         className="form-control"
-                                        id="proveedor_311"
-                                        name="proveedor_311"
-                                        value={formData.proveedor_311 || ''}
+                                        id="descripcion_edificio"
+                                        name="descripcion_edificio"
+                                        value={formData.descripcion_edificio || ''}
                                         onChange={handleChange}
                                     />
                                 </div>
 
                                 <div className="col-md-6 mb-3">
-                                    <label htmlFor="fecha_factura_311" className="form-label">Fecha de Factura</label>
+                                    <label htmlFor="clasificacion_311_1" className="form-label">Clasificación</label>
+                                    <select
+                                        className="form-select"
+                                        id="clasificacion_311_1"
+                                        name="clasificacion_311_1"
+                                        value={formData.clasificacion_311_1 || ''}
+                                        onChange={handleChange}
+                                    >
+                                        <option value="">Seleccione...</option>
+                                        <option value="PÚBLICO">PÚBLICO</option>
+                                        <option value="PRIVADO">PRIVADO</option>
+                                        <option value="MIXTO">MIXTO</option>
+                                    </select>
+                                </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="uso_311_1" className="form-label">Uso</label>
+                                    <select
+                                        className="form-select"
+                                        id="uso_311_1"
+                                        name="uso_311_1"
+                                        value={formData.uso_311_1 || ''}
+                                        onChange={handleChange}
+                                    >
+                                        <option value="">Seleccione...</option>
+                                        <option value="EDUCATIVO">EDUCATIVO</option>
+                                        <option value="ADMINISTRATIVO">ADMINISTRATIVO</option>
+                                        <option value="ALMACÉN">ALMACÉN</option>
+                                        <option value="SALUD">SALUD</option>
+                                        <option value="OTRO">OTRO</option>
+                                    </select>
+                                </div>
+
+                                <div className="col-md-6 mb-3">
+                                    <label htmlFor="superficie_311_1" className="form-label">Superficie (m²)</label>
                                     <input
-                                        type="date"
+                                        type="number"
+                                        step="0.01"
                                         className="form-control"
-                                        id="fecha_factura_311"
-                                        name="fecha_factura_311"
-                                        value={formData.fecha_factura_311 || ''}
+                                        id="superficie_311_1"
+                                        name="superficie_311_1"
+                                        value={formData.superficie_311_1 || ''}
                                         onChange={handleChange}
                                     />
                                 </div>
 
-                                <div className="col-md-6 mb-3">
-                                    <label htmlFor="num_factura_311" className="form-label">Número de Factura</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id="num_factura_311"
-                                        name="num_factura_311"
-                                        value={formData.num_factura_311 || ''}
-                                        onChange={handleChange}
-                                    />
+                                <div className="col-12 mb-3">
+                                    <label className="form-label">Servicios Básicos</label>
+                                    <div className="row">
+                                        {[
+                                            { label: 'Energía Eléctrica', name: 'energia_electrica' },
+                                            { label: 'Gas Domiciliario', name: 'gas_domiciliario' },
+                                            { label: 'Alcantarillado', name: 'alcantarillado' },
+                                            { label: 'Agua', name: 'agua' },
+                                            { label: 'Teléfono', name: 'telefono' },
+                                            { label: 'Celular', name: 'celular' },
+                                            { label: 'Internet', name: 'internet' },
+                                        ].map((servicio) => (
+                                            <div className="col-md-4" key={servicio.name}>
+                                                <div className="form-check">
+                                                    <input
+                                                        className="form-check-input"
+                                                        type="checkbox"
+                                                        id={servicio.name}
+                                                        name={servicio.name}
+                                                        checked={formData[servicio.name] || false}
+                                                        onChange={(e) =>
+                                                            setFormData({ ...formData, [servicio.name]: e.target.checked })
+                                                        }
+                                                    />
+                                                    <label className="form-check-label" htmlFor={servicio.name}>
+                                                        {servicio.label}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
 
-                                <div className="col-md-6 mb-3">
-                                    <label htmlFor="observaciones_311" className="form-label">Observaciones</label>
-                                    <input
-                                        type="text"
+                                <div className="col-12 mb-3">
+                                    <label htmlFor="observaciones_ubi" className="form-label">Observaciones Técnicas</label>
+                                    <textarea
                                         className="form-control"
-                                        id="observaciones_311"
-                                        name="observaciones_311"
-                                        value={formData.observaciones_311 || ''}
+                                        id="observaciones_ubi"
+                                        name="observaciones_ubi"
+                                        rows={3}
+                                        value={formData.observaciones_ubi || ''}
                                         onChange={handleChange}
-                                    />
+                                    ></textarea>
                                 </div>
                             </div>
                         </Tab>
 
 
+
                         <Tab eventKey="estado" title="Estado del Bien">
                             <div className="row">
+                                {/*
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="estado_conservacion_311" className="form-label">Estado de Conservación</label>
                                     <input
@@ -840,7 +896,7 @@ const RegistroEdificio = () => {
                                         onChange={handleChange}
                                     />
                                 </div>
-
+*/}
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="valor_311" className="form-label">Valor</label>
                                     <input
@@ -865,7 +921,7 @@ const RegistroEdificio = () => {
                                         onChange={handleChange}
                                     />
                                 </div>
-
+                                {/*
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="fecha_estado_311" className="form-label">Fecha de Estado</label>
                                     <input
@@ -877,7 +933,7 @@ const RegistroEdificio = () => {
                                         onChange={handleChange}
                                     />
                                 </div>
-
+*/}
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="descripcion_estado_311" className="form-label">Descripción del Estado</label>
                                     <input
@@ -890,6 +946,7 @@ const RegistroEdificio = () => {
                                     />
                                 </div>
 
+                                {/*
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="estado_311" className="form-label">Estado Actual</label>
                                     <input
@@ -901,7 +958,7 @@ const RegistroEdificio = () => {
                                         onChange={handleChange}
                                     />
                                 </div>
-
+*/}
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="estado_faltante_311" className="form-label">Fecha Faltante (si aplica)</label>
                                     <input
@@ -916,7 +973,7 @@ const RegistroEdificio = () => {
                             </div>
                         </Tab>
 
-
+                        {/*
                         <Tab eventKey="responsable" title="Responsable del Bien">
                             <div className="row">
                                 <div className="col-md-4 mb-3">
@@ -1127,8 +1184,8 @@ const RegistroEdificio = () => {
                                 </div>
                             </div>
                         </Tab>
-
-
+*/}
+                        {/*
                         <Tab eventKey="clasificacion" title="Clasificación del Bien">
                             <div className="row">
                                 <div className="col-md-4 mb-3">
@@ -1204,7 +1261,7 @@ const RegistroEdificio = () => {
                                 </div>
                             </div>
                         </Tab>
-
+*/}
 
                         <Tab eventKey="funcionario" title="Funcionario Asignado">
                             <div className="row">
@@ -1294,7 +1351,7 @@ const RegistroEdificio = () => {
                             </div>
                         </Tab>
 
-
+                        {/*  
                         <Tab eventKey="cargo" title="Cargo del Funcionario">
                             <div className="row">
                                 <div className="col-md-3 mb-3">
@@ -1406,7 +1463,7 @@ const RegistroEdificio = () => {
                                 </div>
                             </div>
                         </Tab>
-
+*/}
 
                         <Tab eventKey="ubicacion" title="Ubicación del Bien">
                             <div className="row">
@@ -1496,7 +1553,7 @@ const RegistroEdificio = () => {
                             </div>
                         </Tab>
 
-
+                        {/*
                         <Tab eventKey="agrupacion" title="Agrupación Física">
                             <div className="row">
                                 <div className="col-md-3 mb-3">
@@ -1548,6 +1605,7 @@ const RegistroEdificio = () => {
                                 </div>
                             </div>
                         </Tab>
+*/}
                     </Tabs>
                     <button type="submit" className="btn btn-primary mt-3">Registrar</button>
                 </form>

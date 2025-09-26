@@ -3,8 +3,19 @@ import {
   JoinColumn
 } from 'typeorm';
 import { Usuario } from 'src/usuarios/entities/usuario.entity';
+
+export enum EstadoActivo {
+  EXCELENTE_NUEVO = 'EXCELENTE_NUEVO',
+  BUENO = 'BUENO',
+  REGULAR = 'REGULAR',
+  MALO = 'MALO',
+  PESIMO_DAR_DE_BAJA = 'PESIMO_DAR_DE_BAJA',
+  NO_ENCONTRADO = 'NO_ENCONTRADO',
+}
 @Entity('edificios')
+
 export class Edificio {
+
   @PrimaryGeneratedColumn()
   id_311: number;
 
@@ -40,6 +51,45 @@ export class Edificio {
 
   @Column({ nullable: true })
   ingreso_311: string;
+
+  // 📌 DATOS TÉCNICOS
+  @Column({ nullable: true })
+  nombre_bien_311: string;
+
+  @Column({ nullable: true })
+  clasificacion_311: string;
+
+  @Column({ nullable: true })
+  uso_tecnico_311: string;
+
+  @Column('decimal', { nullable: true, precision: 10, scale: 2 })
+  superficie_tecnica_311: number;
+
+  // Servicios técnicos (checkbox)
+  @Column({ default: false })
+  tiene_energia: boolean;
+
+  @Column({ default: false })
+  tiene_gas: boolean;
+
+  @Column({ default: false })
+  tiene_alcantarillado: boolean;
+
+  @Column({ default: false })
+  tiene_agua: boolean;
+
+  @Column({ default: false })
+  tiene_telefono: boolean;
+
+  @Column({ default: false })
+  tiene_celular: boolean;
+
+  @Column({ default: false })
+  tiene_internet: boolean;
+
+  // Observaciones
+  @Column({ nullable: true, type: 'text' })
+  observaciones_tecnicas: string;
 
   @Column({ nullable: true })
   ingreso_des_311: string;
@@ -257,6 +307,14 @@ export class Edificio {
   @Column({ nullable: true })
   estado_af: string;
 
+  @Column({
+    type: 'enum',
+    enum: EstadoActivo,
+    nullable: true,
+  })
+  estado_activo: EstadoActivo;
+
+
   @CreateDateColumn()
   fecha_creacion: Date;
 
@@ -278,3 +336,6 @@ export class Edificio {
   actualizadoPor: Usuario;
 
 }
+
+
+

@@ -35,7 +35,7 @@ export class CiudadesService {
   }
   async findAll(estado?: string): Promise<Partial<Ciudad>[]> {
     const query = this.ciudadRepo.createQueryBuilder('ciudad')
-      .select(['ciudad.id', 'ciudad.descripcion']) // solo lo necesario para el select
+      .select(['ciudad.id', 'ciudad.codigo', 'ciudad.descripcion']) // ✅ Agrega 'codigo'
       .orderBy('ciudad.descripcion', 'ASC');
 
     if (estado && estado !== 'todos') {
@@ -44,6 +44,8 @@ export class CiudadesService {
 
     return query.getMany();
   }
+
+
 
 
   async findOne(id: number): Promise<Ciudad> {

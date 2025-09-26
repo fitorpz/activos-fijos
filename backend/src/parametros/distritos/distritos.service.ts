@@ -36,18 +36,18 @@ export class DistritosService {
     return this.distritoRepo.save(nueva);
   }
 
-  async findAll(estado?: string): Promise<Distrito[]> {
+  async findAll(estado?: string): Promise<Partial<Distrito>[]> {
     const query = this.distritoRepo.createQueryBuilder('distrito')
-      .leftJoinAndSelect('distrito.creado_por', 'creado_por')
-      .leftJoinAndSelect('distrito.actualizado_por', 'actualizado_por')
-      .orderBy('distrito.id', 'DESC');
+      .select(['distrito.id', 'distrito.codigo', 'distrito.descripcion']) // ✅ Agrega 'codigo'
+      .orderBy('distrito.descripcion', 'ASC');
 
     if (estado && estado !== 'todos') {
-      query.andWhere('distrito.estado = :estado', { estado: estado.toUpperCase() });
+      query.where('distrito.estado = :estado', { estado: estado.toUpperCase() });
     }
 
     return query.getMany();
   }
+
 
   async findOne(id: number): Promise<Distrito> {
     const distrito = await this.distritoRepo.findOne({

@@ -130,7 +130,21 @@ export interface FormDataEdificio {
   direccion_administrativa_id: string;
   ciudad_id: number | '';
   direccion_administrativa: string;
+  estado_activo: string;
 
+   clasificacion_311_1: string;
+  uso_311_1: string;
+  superficie_311_1: string;
+
+  energia_electrica: boolean;
+  gas_domiciliario: boolean;
+  alcantarillado: boolean;
+  agua: boolean;
+  telefono: boolean;
+  celular: boolean;
+  internet: boolean;
+
+  [key: string]: any;
 }
 
 export interface Auxiliar {
@@ -147,5 +161,6 @@ export interface Ciudad {
 
 export interface Distrito {
     id: number;
+    codigo: string;
     descripcion: string;
 }

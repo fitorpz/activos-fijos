@@ -1,3 +1,5 @@
+import { EstadoActivo } from '../entities/edificio.entity';
+
 export class CreateEdificioDto {
     codigo_311: string;
     descripcion_edificio?: string;
@@ -16,6 +18,7 @@ export class CreateEdificioDto {
     estado_conservacion_311?: string;
     valor_311?: number;
     vida_util_311?: number;
+    estado_activo?: EstadoActivo;
     fecha_estado_311?: Date;
     descripcion_estado_311?: string;
     estado_311?: string;
@@ -79,4 +82,21 @@ export class CreateEdificioDto {
     codigo_af?: string;
     nombre_af?: string;
     estado_af?: string;
+
+    // 📌 DATOS TÉCNICOS
+    nombre_bien_311?: string;
+    clasificacion_311?: string;
+    uso_tecnico_311?: string;
+    superficie_tecnica_311?: number;
+
+    tiene_energia?: boolean;
+    tiene_gas?: boolean;
+    tiene_alcantarillado?: boolean;
+    tiene_agua?: boolean;
+    tiene_telefono?: boolean;
+    tiene_celular?: boolean;
+    tiene_internet?: boolean;
+
+    observaciones_tecnicas?: string;
+
 }
