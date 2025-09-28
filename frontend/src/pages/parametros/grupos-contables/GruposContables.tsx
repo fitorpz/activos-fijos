@@ -100,6 +100,10 @@ const GruposContables = () => {
         }
     };
 
+    // Ordenar por código (alfanuméricamente, de menor a mayor)
+    const gruposOrdenados = [...grupos].sort((a, b) => a.codigo.localeCompare(b.codigo));
+
+
     return (
         <div className="container mt-4">
             <div className="d-flex justify-content-between align-items-center mb-4">

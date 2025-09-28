@@ -156,6 +156,15 @@ const RegistroEdificio = () => {
         fetchCiudadesYDistritos();
     }, []);
 
+    useEffect(() => {
+        // Establecer automáticamente el grupo contable de edificios (311.00)
+        setFormData(prev => ({
+            ...prev,
+            codigo_grupo: '311.00'
+        }));
+    }, []);
+
+
 
 
     useEffect(() => {
@@ -324,24 +333,28 @@ const RegistroEdificio = () => {
         return { Authorization: `Bearer ${token}` };
     };
 
-    // 3. Buscar auxiliares con autocomplete
     const buscarAuxiliares = async (texto: string) => {
-        if (!texto.trim().length) {
+        if (!texto.trim().length || !formData.codigo_grupo) {
             setSugerenciasAuxiliares([]);
             return;
         }
+
         try {
             const res = await axiosInstance.get<Auxiliar[]>('/parametros/auxiliares/buscar', {
                 headers: authHeaders(),
-                params: { search: texto, estado: 'ACTIVO' } // usa 'search' como en el backend, no 'q'
+                params: {
+                    search: texto,
+                    estado: 'ACTIVO',
+                    codigo_grupo: formData.codigo_grupo // ← filtrado por grupo contable
+                }
             });
-
 
             setSugerenciasAuxiliares(res.data);
         } catch (e) {
             setSugerenciasAuxiliares([]);
         }
     };
+
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -719,7 +732,7 @@ const RegistroEdificio = () => {
 
 
                                 <div className="col-md-6 mb-3">
-                                    <label htmlFor="codigo_311" className="form-label">Código del Edificio</label>
+                                    <label htmlFor="codigo_311" className="form-label">Código</label>
                                     <input type="text" className="form-control" id="codigo_311" name="codigo_311" value={formData.codigo_311 || ''} onChange={handleChange} readOnly />
                                 </div>
 
@@ -744,7 +757,7 @@ const RegistroEdificio = () => {
 
 
                                 <div className="col-md-6 mb-3">
-                                    <label htmlFor="descripcion_edificio" className="form-label">Descripción del Edificio</label>
+                                    <label htmlFor="descripcion_edificio" className="form-label">Descripción</label>
                                     <textarea
                                         className="form-control"
                                         id="descripcion_edificio"
@@ -757,8 +770,21 @@ const RegistroEdificio = () => {
 
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="ingreso_311" className="form-label">Tipo de Ingreso</label>
-                                    <input type="text" className="form-control" id="ingreso_311" name="ingreso_311" value={formData.ingreso_311 || ''} onChange={handleChange} required />
+                                    <select
+                                        className="form-select"
+                                        id="ingreso_311"
+                                        name="ingreso_311"
+                                        value={formData.ingreso_311 || ''}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <option value="">-- Seleccione --</option>
+                                        <option value="COMPRA">Compra</option>
+                                        <option value="DONACION">Donación</option>
+                                        <option value="REAVALUO">Reavalúo</option>
+                                    </select>
                                 </div>
+
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="ingreso_des_311" className="form-label">Descripción del Ingreso</label>
                                     <input type="text" className="form-control" id="ingreso_des_311" name="ingreso_des_311" value={formData.ingreso_des_311 || ''} onChange={handleChange} required />
@@ -774,17 +800,6 @@ const RegistroEdificio = () => {
 
                         <Tab eventKey="tecnico" title="Datos Técnicos del Bien">
                             <div className="row">
-                                <div className="col-md-6 mb-3">
-                                    <label htmlFor="descripcion_edificio" className="form-label">Nombre del Bien</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id="descripcion_edificio"
-                                        name="descripcion_edificio"
-                                        value={formData.descripcion_edificio || ''}
-                                        onChange={handleChange}
-                                    />
-                                </div>
 
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="clasificacion_311_1" className="form-label">Clasificación</label>
@@ -881,10 +896,10 @@ const RegistroEdificio = () => {
                         </Tab>
 
 
-
+                        {/*
                         <Tab eventKey="estado" title="Estado del Bien">
                             <div className="row">
-                                {/*
+                                
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="estado_conservacion_311" className="form-label">Estado de Conservación</label>
                                     <input
@@ -896,7 +911,7 @@ const RegistroEdificio = () => {
                                         onChange={handleChange}
                                     />
                                 </div>
-*/}
+
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="valor_311" className="form-label">Valor</label>
                                     <input
@@ -934,19 +949,19 @@ const RegistroEdificio = () => {
                                     />
                                 </div>
 */}
-                                <div className="col-md-6 mb-3">
-                                    <label htmlFor="descripcion_estado_311" className="form-label">Descripción del Estado</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id="descripcion_estado_311"
-                                        name="descripcion_estado_311"
-                                        value={formData.descripcion_estado_311 || ''}
-                                        onChange={handleChange}
-                                    />
-                                </div>
+                        <div className="col-md-6 mb-3">
+                            <label htmlFor="descripcion_estado_311" className="form-label">Descripción del Estado</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                id="descripcion_estado_311"
+                                name="descripcion_estado_311"
+                                value={formData.descripcion_estado_311 || ''}
+                                onChange={handleChange}
+                            />
+                        </div>
 
-                                {/*
+                        {/*
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="estado_311" className="form-label">Estado Actual</label>
                                     <input
@@ -958,7 +973,7 @@ const RegistroEdificio = () => {
                                         onChange={handleChange}
                                     />
                                 </div>
-*/}
+
                                 <div className="col-md-6 mb-3">
                                     <label htmlFor="estado_faltante_311" className="form-label">Fecha Faltante (si aplica)</label>
                                     <input
@@ -972,7 +987,7 @@ const RegistroEdificio = () => {
                                 </div>
                             </div>
                         </Tab>
-
+*/}
                         {/*
                         <Tab eventKey="responsable" title="Responsable del Bien">
                             <div className="row">
@@ -1262,7 +1277,7 @@ const RegistroEdificio = () => {
                             </div>
                         </Tab>
 */}
-
+                        {/*
                         <Tab eventKey="funcionario" title="Funcionario Asignado">
                             <div className="row">
                                 <div className="col-md-3 mb-3">
@@ -1350,7 +1365,7 @@ const RegistroEdificio = () => {
                                 </div>
                             </div>
                         </Tab>
-
+*/}
                         {/*  
                         <Tab eventKey="cargo" title="Cargo del Funcionario">
                             <div className="row">
@@ -1464,7 +1479,7 @@ const RegistroEdificio = () => {
                             </div>
                         </Tab>
 */}
-
+                        {/*
                         <Tab eventKey="ubicacion" title="Ubicación del Bien">
                             <div className="row">
                                 <div className="col-md-3 mb-3">
@@ -1552,7 +1567,7 @@ const RegistroEdificio = () => {
                                 </div>
                             </div>
                         </Tab>
-
+*/}
                         {/*
                         <Tab eventKey="agrupacion" title="Agrupación Física">
                             <div className="row">

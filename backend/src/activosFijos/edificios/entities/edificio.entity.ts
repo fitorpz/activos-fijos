@@ -335,6 +335,13 @@ export class Edificio {
   @JoinColumn({ name: 'actualizado_por' })
   actualizadoPor: Usuario;
 
+  @Column({ nullable: true })
+  codigo_grupo: string; // Ej: 311.00
+
+  @Column({ nullable: true })
+  codigo_auxiliar: string; // Ej: 311.00.0001
+
+
 }
 
 

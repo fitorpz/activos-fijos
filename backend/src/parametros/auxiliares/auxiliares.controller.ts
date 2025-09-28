@@ -46,8 +46,11 @@ export class AuxiliaresController {
   }
 
   @Get()
-  findAll(@Query('estado') estado: string) {
-    return this.auxiliaresService.findAll(estado);
+  findAll(
+    @Query('estado') estado: string,
+    @Query('codigo_grupo') codigo_grupo?: string,
+  ) {
+    return this.auxiliaresService.findAll(estado, codigo_grupo);
   }
 
 
@@ -61,15 +64,24 @@ export class AuxiliaresController {
     return { correlativo }; // ej: { correlativo: "0001" }
   }
 
-  // En auxiliares.controller.ts
+  @Get('por-grupo')
+  async getAuxiliaresPorGrupo(@Query('codigo_grupo') codigo_grupo: string) {
+    if (!codigo_grupo) {
+      throw new Error('Debe proporcionar el código del grupo contable');
+    }
+    return this.auxiliaresService.findByGrupo(codigo_grupo);
+  }
+
+
   @Get('buscar')
   async buscarAuxiliares(
     @Query('search') search: string,
     @Query('estado') estado?: string,
+    @Query('codigo_grupo') codigo_grupo?: string, // nuevo parámetro
   ) {
-    // Pasa el parámetro al servicio
-    return this.auxiliaresService.buscarAuxiliares(search, estado);
+    return this.auxiliaresService.buscarAuxiliares(search, estado, codigo_grupo);
   }
+
 
 
   @Get(':id')
@@ -105,9 +117,10 @@ export class AuxiliaresController {
   async exportarPDF(
     @Res() res: Response,
     @Query('estado') estado: string,
+    @Query('codigo_grupo') codigo_grupo?: string,
   ) {
     try {
-      const auxiliares = await this.auxiliaresService.findAll(estado);
+      const auxiliares = await this.auxiliaresService.findAll(estado, codigo_grupo);
 
       const filasHTML = auxiliares.map((aux, index) => `
         <tr>

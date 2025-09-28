@@ -21,15 +21,41 @@ export interface Auxiliar {
     updated_at?: string | null;
 }
 
+export interface GrupoContable {
+    id: number;
+    codigo: string;
+    descripcion: string;
+    estado: 'ACTIVO' | 'INACTIVO';
+}
+
 const Auxiliares = () => {
     const [auxiliares, setAuxiliares] = useState<Auxiliar[]>([]);
-    const [cargando, setCargando] = useState(true);
+    const [gruposContables, setGruposContables] = useState<GrupoContable[]>([]);
+    const [codigoGrupoFiltro, setCodigoGrupoFiltro] = useState<string>('');
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
+    const [cargando, setCargando] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
+        obtenerGruposContables();
+    }, []);
+
+    useEffect(() => {
         obtenerAuxiliares();
-    }, [estadoFiltro]);
+    }, [estadoFiltro, codigoGrupoFiltro]);
+
+    const obtenerGruposContables = async () => {
+        const token = localStorage.getItem('token');
+        try {
+            const res = await axios.get<GrupoContable[]>('/parametros/grupos-contables', {
+                params: { estado: 'ACTIVO' },
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setGruposContables(res.data);
+        } catch (error) {
+            console.error('Error al obtener grupos contables:', error);
+        }
+    };
 
     const obtenerAuxiliares = async () => {
         const token = localStorage.getItem('token');
@@ -42,10 +68,13 @@ const Auxiliares = () => {
                             : estadoFiltro === 'inactivos'
                                 ? 'INACTIVO'
                                 : 'todos',
+                    ...(codigoGrupoFiltro ? { codigo_grupo: codigoGrupoFiltro } : {})
                 },
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setAuxiliares(res.data);
+
+            const ordenados = [...res.data].sort((a, b) => a.codigo.localeCompare(b.codigo));
+            setAuxiliares(ordenados);
         } catch (error) {
             console.error('Error al obtener auxiliares:', error);
         } finally {
@@ -77,12 +106,13 @@ const Auxiliares = () => {
 
         try {
             const response = await axios.get(
-                `/parametros/auxiliares/exportar/pdf?estado=${estadoSeleccionado}`,
+                `/parametros/auxiliares/exportar/pdf?estado=${estadoSeleccionado}&codigo_grupo=${codigoGrupoFiltro}`,
                 {
                     responseType: 'blob',
                     headers: { Authorization: `Bearer ${token}` },
                 }
             );
+
 
             const blob = new Blob([response.data as Blob], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
@@ -132,9 +162,23 @@ const Auxiliares = () => {
                             <option value="inactivos">Solo Inactivos</option>
                         </select>
                     </div>
+
+                    <div style={{ minWidth: '220px' }}>
+                        <select
+                            className="form-select"
+                            value={codigoGrupoFiltro}
+                            onChange={(e) => setCodigoGrupoFiltro(e.target.value)}
+                        >
+                            <option value="">Todos los Grupos</option>
+                            {gruposContables.map(grupo => (
+                                <option key={grupo.id} value={grupo.codigo}>
+                                    {grupo.codigo} - {grupo.descripcion}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             </div>
-
 
             <div className="table-responsive">
                 <table className="table table-bordered table-hover align-middle">
@@ -155,9 +199,7 @@ const Auxiliares = () => {
                     <tbody>
                         {cargando ? (
                             <tr>
-                                <td colSpan={10} className="text-center">
-                                    Cargando datos...
-                                </td>
+                                <td colSpan={10} className="text-center">Cargando datos...</td>
                             </tr>
                         ) : auxiliares.length > 0 ? (
                             auxiliares.map((aux, index) => (

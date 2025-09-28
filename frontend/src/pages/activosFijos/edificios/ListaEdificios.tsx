@@ -119,7 +119,7 @@ const ListaEdificios = () => {
         <div className="container mt-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h4 className="mb-0">Edificios</h4>
+                    <h4 className="mb-0">Edificios – Grupo Contable 311.00</h4>
                     <p className="text-muted small">Gestión de activos fijos registrados</p>
                 </div>
 

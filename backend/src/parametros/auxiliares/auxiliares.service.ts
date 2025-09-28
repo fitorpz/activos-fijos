@@ -36,18 +36,25 @@ export class AuxiliaresService {
   }
 
   // Obtener todos los auxiliares (con filtro por estado)
-  async findAll(estado?: string): Promise<Auxiliar[]> {
+  // servicio
+  async findAll(estado?: string, codigo_grupo?: string): Promise<Auxiliar[]> {
     const query = this.auxiliarRepo.createQueryBuilder('auxiliar')
       .leftJoinAndSelect('auxiliar.creado_por', 'creado_por')
-      .leftJoinAndSelect('auxiliar.actualizado_por', 'actualizado_por')
-      .orderBy('auxiliar.id', 'DESC');
+      .leftJoinAndSelect('auxiliar.actualizado_por', 'actualizado_por');
 
+    // estado
     if (estado && estado !== 'todos') {
       query.andWhere('auxiliar.estado = :estado', { estado: estado.toUpperCase() });
     }
 
-    return query.getMany();
+    // grupo contable
+    if (codigo_grupo) {
+      query.andWhere('auxiliar.codigo_grupo = :codigo_grupo', { codigo_grupo });
+    }
+
+    return query.orderBy('auxiliar.codigo', 'ASC').getMany();
   }
+
 
   // Obtener auxiliar por ID
   async findOne(id: number): Promise<Auxiliar> {
@@ -136,20 +143,32 @@ export class AuxiliaresService {
     return siguienteNumero; // Ej: "0008"
   }
 
-  // En AuxiliaresService
-  // En auxiliares.service.ts
-  async buscarAuxiliares(search: string, estado?: string): Promise<Auxiliar[]> {
+  async buscarAuxiliares(search: string, estado?: string, codigo_grupo?: string): Promise<Auxiliar[]> {
     const query = this.auxiliarRepo.createQueryBuilder('auxiliar')
       .where('auxiliar.estado = :estado', { estado: (estado ?? 'ACTIVO').toUpperCase() });
+
+    if (codigo_grupo) {
+      query.andWhere('auxiliar.codigo_grupo = :codigo_grupo', { codigo_grupo });
+    }
 
     if (search) {
       query.andWhere(
         '(auxiliar.codigo ILIKE :search OR auxiliar.descripcion ILIKE :search)',
-        { search: `%${search}%` },
+        { search: `%${search}%` }
       );
     }
+
     return query.orderBy('auxiliar.codigo', 'ASC').limit(10).getMany();
   }
+
+
+  async findByGrupo(codigo_grupo: string): Promise<Auxiliar[]> {
+    return this.auxiliarRepo.find({
+      where: { codigo_grupo, estado: 'ACTIVO' },
+      order: { codigo: 'ASC' },
+    });
+  }
+
 
 
 }
