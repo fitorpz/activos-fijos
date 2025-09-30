@@ -36,12 +36,20 @@ const DireccionesAdministrativas = () => {
     const [cargando, setCargando] = useState(true);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
 
+    const [filtroCodigo, setFiltroCodigo] = useState('');
+    const [filtroDescripcion, setFiltroDescripcion] = useState('');
+    const [filtroCreadoPor, setFiltroCreadoPor] = useState('');
+    const [filtroActualizadoPor, setFiltroActualizadoPor] = useState('');
+    const [direccionesFiltradas, setDireccionesFiltradas] = useState<DireccionAdministrativa[]>([]);
 
 
     useEffect(() => {
         obtenerDirecciones();
     }, [estadoFiltro]);
 
+    useEffect(() => {
+        aplicarFiltros();
+    }, [filtroCodigo, filtroDescripcion, filtroCreadoPor, filtroActualizadoPor, direcciones, estadoFiltro]);
 
     const obtenerDirecciones = async () => {
         const token = localStorage.getItem('token');
@@ -62,7 +70,10 @@ const DireccionesAdministrativas = () => {
                 }
             );
 
-            setDirecciones(res.data);
+            const ordenado = res.data.sort((a, b) => a.codigo.localeCompare(b.codigo));
+
+            setDirecciones(ordenado);
+            setCargando(false);
         } catch (error) {
             console.error('Error al obtener direcciones:', error);
         } finally {
@@ -70,7 +81,47 @@ const DireccionesAdministrativas = () => {
         }
     };
 
+    const aplicarFiltros = () => {
+        let filtrado = direcciones;
 
+        if (estadoFiltro === 'activos') {
+            filtrado = filtrado.filter(dir => dir.estado === 'ACTIVO');
+        } else if (estadoFiltro === 'inactivos') {
+            filtrado = filtrado.filter(dir => dir.estado === 'INACTIVO');
+        }
+        // Filtrar por código (insensible a mayúsculas)
+        if (filtroCodigo.trim() !== '') {
+            filtrado = filtrado.filter(dir =>
+                dir.codigo.toLowerCase().includes(filtroCodigo.trim().toLowerCase())
+            );
+        }
+
+        // Filtrar por descripción
+        if (filtroDescripcion.trim() !== '') {
+            filtrado = filtrado.filter(dir =>
+                dir.descripcion.toLowerCase().includes(filtroDescripcion.trim().toLowerCase())
+            );
+        }
+
+        // Filtrar por creado por (nombre o rol)
+        if (filtroCreadoPor.trim() !== '') {
+            filtrado = filtrado.filter(dir =>
+                dir.creado_por.nombre.toLowerCase().includes(filtroCreadoPor.trim().toLowerCase()) ||
+                dir.creado_por.rol.toLowerCase().includes(filtroCreadoPor.trim().toLowerCase())
+            );
+        }
+
+        // Filtrar por actualizado por (nombre o rol)
+        if (filtroActualizadoPor.trim() !== '') {
+            filtrado = filtrado.filter(dir =>
+                dir.actualizado_por &&
+                (dir.actualizado_por.nombre.toLowerCase().includes(filtroActualizadoPor.trim().toLowerCase()) ||
+                    dir.actualizado_por.rol.toLowerCase().includes(filtroActualizadoPor.trim().toLowerCase()))
+            );
+        }
+
+        setDireccionesFiltradas(filtrado);
+    };
     const eliminarDireccion = async (id: number) => {
         if (!window.confirm('¿Estás seguro de eliminar esta dirección administrativa?')) return;
         try {
@@ -133,7 +184,7 @@ const DireccionesAdministrativas = () => {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h4 className="mb-0">Direcciones Administrativas</h4>
-                    <p className="text-muted small">Gestión de registros por dirección</p>
+                    <p className="text-muted small">Gestión de registros por Dirección Administrativa</p>
                 </div>
 
                 <div className="d-flex flex-wrap align-items-center gap-2">
@@ -184,14 +235,57 @@ const DireccionesAdministrativas = () => {
                             <th>Fecha de Actualización</th>
                             <th>Acciones</th>
                         </tr>
+                        <tr>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar código"
+                                    value={filtroCodigo}
+                                    onChange={(e) => setFiltroCodigo(e.target.value)}
+                                />
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar descripción"
+                                    value={filtroDescripcion}
+                                    onChange={(e) => setFiltroDescripcion(e.target.value)}
+                                />
+                            </th>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar creado por"
+                                    value={filtroCreadoPor}
+                                    onChange={(e) => setFiltroCreadoPor(e.target.value)}
+                                />
+                            </th>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar actualizado por"
+                                    value={filtroActualizadoPor}
+                                    onChange={(e) => setFiltroActualizadoPor(e.target.value)}
+                                />
+                            </th>
+                            <th></th>
+                            <th></th>
+                        </tr>
                     </thead>
                     <tbody>
                         {cargando ? (
                             <tr>
                                 <td colSpan={8} className="text-center">Cargando datos...</td>
                             </tr>
-                        ) : direcciones.length > 0 ? (
-                            direcciones.map((item, index) => (
+                        ) : direccionesFiltradas.length > 0 ? (
+                            direccionesFiltradas.map((item, index) => (
                                 <tr key={item.id}>
                                     <td>{index + 1}</td>
                                     <td>{item.codigo}</td>

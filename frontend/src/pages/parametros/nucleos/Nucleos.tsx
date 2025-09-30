@@ -22,12 +22,44 @@ interface Nucleo {
 
 const Nucleos = () => {
     const [nucleos, setNucleos] = useState<Nucleo[]>([]);
-    const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
+    const [nucleosFiltrados, setNucleosFiltrados] = useState<Nucleo[]>([]);
     const [cargando, setCargando] = useState(true);
     const navigate = useNavigate();
 
+    const [estadoFiltro, setEstadoFiltro] = useState<'todos' | 'activos' | 'inactivos'>('activos');
+    const [filtroCodigo, setFiltroCodigo] = useState('');
+    const [filtroDescripcion, setFiltroDescripcion] = useState('');
+    const [filtroEstado, setFiltroEstado] = useState<'TODOS' | 'ACTIVO' | 'INACTIVO'>('TODOS');
+    const [filtroCreadoPor, setFiltroCreadoPor] = useState('');
+    const [filtroActualizadoPor, setFiltroActualizadoPor] = useState('');
+
     useEffect(() => {
         obtenerNucleos();
+    }, [estadoFiltro]);
+
+    useEffect(() => {
+        aplicarFiltros();
+    }, [
+        filtroCodigo,
+        filtroDescripcion,
+        filtroEstado,
+        filtroCreadoPor,
+        filtroActualizadoPor,
+        nucleos
+    ]);
+
+
+    useEffect(() => {
+        switch (estadoFiltro) {
+            case 'activos':
+                setFiltroEstado('ACTIVO');
+                break;
+            case 'inactivos':
+                setFiltroEstado('INACTIVO');
+                break;
+            default:
+                setFiltroEstado('TODOS');
+        }
     }, [estadoFiltro]);
 
     const obtenerNucleos = async () => {
@@ -65,13 +97,9 @@ const Nucleos = () => {
         const estado = estadoFiltro === 'activos' ? 'ACTIVO' : estadoFiltro === 'inactivos' ? 'INACTIVO' : 'todos';
 
         try {
-            const res = await axios.get<Blob>(
-                `/parametros/nucleos/exportar/pdf?estado=${estado}`,
-                {
-                    responseType: 'blob',
-                }
-            );
-
+            const res = await axios.get<Blob>(`/parametros/nucleos/exportar/pdf?estado=${estado}`, {
+                responseType: 'blob',
+            });
 
             const blob = new Blob([res.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
@@ -79,6 +107,43 @@ const Nucleos = () => {
         } catch (error) {
             console.error('❌ Error al exportar PDF:', error);
         }
+    };
+
+    const aplicarFiltros = () => {
+        let filtrado = nucleos;
+
+        if (filtroEstado !== 'TODOS') {
+            filtrado = filtrado.filter((nucleo) => nucleo.estado === filtroEstado);
+        }
+
+        if (filtroCodigo.trim() !== '') {
+            filtrado = filtrado.filter((nucleo) =>
+                nucleo.codigo.toLowerCase().includes(filtroCodigo.toLowerCase())
+            );
+        }
+
+        if (filtroDescripcion.trim() !== '') {
+            filtrado = filtrado.filter((nucleo) =>
+                nucleo.descripcion.toLowerCase().includes(filtroDescripcion.toLowerCase())
+            );
+        }
+
+        if (filtroCreadoPor.trim() !== '') {
+            filtrado = filtrado.filter((nucleo) =>
+                nucleo.creado_por?.nombre.toLowerCase().includes(filtroCreadoPor.toLowerCase())
+            );
+        }
+
+        if (filtroActualizadoPor.trim() !== '') {
+            filtrado = filtrado.filter((nucleo) =>
+                nucleo.actualizado_por?.nombre.toLowerCase().includes(filtroActualizadoPor.toLowerCase())
+            );
+        }
+
+        // ✅ Ordenar alfabéticamente por código
+        filtrado.sort((a, b) => a.codigo.localeCompare(b.codigo));
+
+        setNucleosFiltrados(filtrado);
     };
 
     return (
@@ -106,7 +171,7 @@ const Nucleos = () => {
                         <select
                             className="form-select"
                             value={estadoFiltro}
-                            onChange={(e) => setEstadoFiltro(e.target.value)}
+                            onChange={(e) => setEstadoFiltro(e.target.value as 'todos' | 'activos' | 'inactivos')}
                         >
                             <option value="todos">Todos</option>
                             <option value="activos">Solo Activos</option>
@@ -130,14 +195,73 @@ const Nucleos = () => {
                             <th>F. Actualización</th>
                             <th>Acciones</th>
                         </tr>
+
+                        {/* FILTRADORES DENTRO DEL THEAD */}
+                        <tr>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    placeholder="Filtrar código"
+                                    className="form-control form-control-sm"
+                                    value={filtroCodigo}
+                                    onChange={(e) => setFiltroCodigo(e.target.value)}
+                                />
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    placeholder="Filtrar descripción"
+                                    className="form-control form-control-sm"
+                                    value={filtroDescripcion}
+                                    onChange={(e) => setFiltroDescripcion(e.target.value)}
+                                />
+                            </th>
+                            <th>
+                                <select
+                                    className="form-select form-select-sm"
+                                    value={filtroEstado}
+                                    onChange={(e) => setFiltroEstado(e.target.value as 'TODOS' | 'ACTIVO' | 'INACTIVO')}
+                                >
+                                    <option value="TODOS">Todos</option>
+                                    <option value="ACTIVO">Activo</option>
+                                    <option value="INACTIVO">Inactivo</option>
+                                </select>
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    placeholder="Filtrar creado por"
+                                    className="form-control form-control-sm"
+                                    value={filtroCreadoPor}
+                                    onChange={(e) => setFiltroCreadoPor(e.target.value)}
+                                />
+                            </th>
+                            <th></th> {/* para F. Registro no se filtra */}
+                            <th>
+                                <input
+                                    type="text"
+                                    placeholder="Filtrar actualizado por"
+                                    className="form-control form-control-sm"
+                                    value={filtroActualizadoPor}
+                                    onChange={(e) => setFiltroActualizadoPor(e.target.value)}
+                                />
+                            </th>
+                            <th></th> {/* para F. Actualización no se filtra */}
+                            <th></th> {/* para acciones */}
+
+                        </tr>
                     </thead>
+
                     <tbody>
                         {cargando ? (
                             <tr>
-                                <td colSpan={9} className="text-center">Cargando...</td>
+                                <td colSpan={9} className="text-center">
+                                    Cargando...
+                                </td>
                             </tr>
-                        ) : nucleos.length > 0 ? (
-                            nucleos.map((nucleo, i) => (
+                        ) : nucleosFiltrados.length > 0 ? (
+                            nucleosFiltrados.map((nucleo, i) => (
                                 <tr key={nucleo.id}>
                                     <td>{i + 1}</td>
                                     <td>{nucleo.codigo}</td>
@@ -166,7 +290,9 @@ const Nucleos = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={9} className="text-center">No hay registros.</td>
+                                <td colSpan={9} className="text-center">
+                                    No hay registros.
+                                </td>
                             </tr>
                         )}
                     </tbody>

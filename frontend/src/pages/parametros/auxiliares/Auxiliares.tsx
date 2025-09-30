@@ -35,10 +35,25 @@ const Auxiliares = () => {
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
     const [cargando, setCargando] = useState(true);
     const navigate = useNavigate();
+    const [filtroCodigo, setFiltroCodigo] = useState('');
+    const [filtroDescripcion, setFiltroDescripcion] = useState('');
+    const [filtroCodigoGrupo, setFiltroCodigoGrupo] = useState('');
+    const [filtroEstado, setFiltroEstado] = useState<'TODOS' | 'ACTIVO' | 'INACTIVO'>('TODOS');
+    const [filtroCreadoPor, setFiltroCreadoPor] = useState('');
+    const [filtroActualizadoPor, setFiltroActualizadoPor] = useState('');
+    const [auxiliaresFiltrados, setAuxiliaresFiltrados] = useState<Auxiliar[]>([]);
 
     useEffect(() => {
         obtenerGruposContables();
     }, []);
+
+    useEffect(() => {
+        obtenerAuxiliares();
+    }, []);
+
+    useEffect(() => {
+        aplicarFiltros();
+    }, [auxiliares, filtroCodigo, filtroDescripcion, filtroCodigoGrupo, filtroEstado, filtroCreadoPor, filtroActualizadoPor]);
 
     useEffect(() => {
         obtenerAuxiliares();
@@ -80,6 +95,44 @@ const Auxiliares = () => {
         } finally {
             setCargando(false);
         }
+    };
+
+    const aplicarFiltros = () => {
+        let resultado = [...auxiliares];
+
+        if (filtroEstado !== 'TODOS') {
+            resultado = resultado.filter((a) => a.estado === filtroEstado);
+        }
+        if (filtroCodigo.trim() !== '') {
+            resultado = resultado.filter((a) =>
+                a.codigo.toLowerCase().includes(filtroCodigo.toLowerCase())
+            );
+        }
+        if (filtroDescripcion.trim() !== '') {
+            resultado = resultado.filter((a) =>
+                a.descripcion.toLowerCase().includes(filtroDescripcion.toLowerCase())
+            );
+        }
+        if (filtroCodigoGrupo.trim() !== '') {
+            resultado = resultado.filter((a) =>
+                a.codigo_grupo.toLowerCase().includes(filtroCodigoGrupo.toLowerCase())
+            );
+        }
+        if (filtroCreadoPor.trim() !== '') {
+            resultado = resultado.filter((a) =>
+                a.creado_por?.nombre.toLowerCase().includes(filtroCreadoPor.toLowerCase())
+            );
+        }
+        if (filtroActualizadoPor.trim() !== '') {
+            resultado = resultado.filter((a) =>
+                a.actualizado_por?.nombre?.toLowerCase().includes(filtroActualizadoPor.toLowerCase())
+            );
+        }
+
+        // Ordenar por código
+        resultado.sort((a, b) => a.codigo.localeCompare(b.codigo));
+
+        setAuxiliaresFiltrados(resultado);
     };
 
     const cambiarEstado = async (id: number) => {
@@ -195,14 +248,83 @@ const Auxiliares = () => {
                             <th>Fecha de Actualización</th>
                             <th>Acciones</th>
                         </tr>
+                        <tr>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar código"
+                                    value={filtroCodigo}
+                                    onChange={(e) => setFiltroCodigo(e.target.value)}
+                                />
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar descripción"
+                                    value={filtroDescripcion}
+                                    onChange={(e) => setFiltroDescripcion(e.target.value)}
+                                />
+                            </th>
+                            <th>
+                                <select
+                                    className="form-select form-select-sm"
+                                    value={filtroCodigoGrupo}
+                                    onChange={(e) => setFiltroCodigoGrupo(e.target.value)}
+                                >
+                                    <option value="">Todos los Grupos</option>
+                                    {gruposContables.map((grupo) => (
+                                        <option key={grupo.id} value={grupo.codigo}>
+                                            {grupo.codigo} - {grupo.descripcion}
+                                        </option>
+                                    ))}
+                                </select>
+                            </th>
+                            <th>
+                                <select
+                                    className="form-select form-select-sm"
+                                    value={filtroEstado}
+                                    onChange={(e) =>
+                                        setFiltroEstado(e.target.value as 'TODOS' | 'ACTIVO' | 'INACTIVO')
+                                    }
+                                >
+                                    <option value="TODOS">Todos</option>
+                                    <option value="ACTIVO">Activo</option>
+                                    <option value="INACTIVO">Inactivo</option>
+                                </select>
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar creado por"
+                                    value={filtroCreadoPor}
+                                    onChange={(e) => setFiltroCreadoPor(e.target.value)}
+                                />
+                            </th>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar actualizado por"
+                                    value={filtroActualizadoPor}
+                                    onChange={(e) => setFiltroActualizadoPor(e.target.value)}
+                                />
+                            </th>
+                            <th></th>
+                            <th></th>
+                        </tr>
                     </thead>
                     <tbody>
                         {cargando ? (
                             <tr>
                                 <td colSpan={10} className="text-center">Cargando datos...</td>
                             </tr>
-                        ) : auxiliares.length > 0 ? (
-                            auxiliares.map((aux, index) => (
+                        ) : auxiliaresFiltrados.length > 0 ? (
+                            auxiliaresFiltrados.map((aux, index) => (
                                 <tr key={aux.id}>
                                     <td>{index + 1}</td>
                                     <td>{aux.codigo}</td>

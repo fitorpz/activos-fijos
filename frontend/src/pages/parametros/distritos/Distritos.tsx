@@ -21,15 +21,25 @@ interface Distrito {
 }
 
 const Distritos = () => {
-    const [ciudades, setDistritos] = useState<Distrito[]>([]);
+
+    const [distritos, setDistritos] = useState<Distrito[]>([]);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
     const [cargando, setCargando] = useState(true);
     const navigate = useNavigate();
+    const [filtroCodigo, setFiltroCodigo] = useState('');
+    const [filtroDescripcion, setFiltroDescripcion] = useState('');
+    const [filtroEstado, setFiltroEstado] = useState<'TODOS' | 'ACTIVO' | 'INACTIVO'>('TODOS');
+    const [filtroCreadoPor, setFiltroCreadoPor] = useState('');
+    const [filtroActualizadoPor, setFiltroActualizadoPor] = useState('');
+    const [filtrados, setFiltrados] = useState<Distrito[]>([]);
 
     useEffect(() => {
         obtenerDistritos();
     }, [estadoFiltro]);
 
+    useEffect(() => {
+        aplicarFiltros();
+    }, [distritos, filtroCodigo, filtroDescripcion, filtroEstado, filtroCreadoPor, filtroActualizadoPor]);
     const obtenerDistritos = async () => {
         setCargando(true);
         try {
@@ -49,6 +59,43 @@ const Distritos = () => {
         } finally {
             setCargando(false);
         }
+    };
+
+    const aplicarFiltros = () => {
+        let resultado = [...distritos];
+
+        if (filtroEstado !== 'TODOS') {
+            resultado = resultado.filter(d => d.estado === filtroEstado);
+        }
+
+        if (filtroCodigo.trim() !== '') {
+            resultado = resultado.filter(d =>
+                d.codigo.toLowerCase().includes(filtroCodigo.toLowerCase())
+            );
+        }
+
+        if (filtroDescripcion.trim() !== '') {
+            resultado = resultado.filter(d =>
+                d.descripcion.toLowerCase().includes(filtroDescripcion.toLowerCase())
+            );
+        }
+
+        if (filtroCreadoPor.trim() !== '') {
+            resultado = resultado.filter(d =>
+                d.creado_por?.nombre.toLowerCase().includes(filtroCreadoPor.toLowerCase())
+            );
+        }
+
+        if (filtroActualizadoPor.trim() !== '') {
+            resultado = resultado.filter(d =>
+                d.actualizado_por?.nombre.toLowerCase().includes(filtroActualizadoPor.toLowerCase())
+            );
+        }
+
+        // Ordenar por código alfabéticamente
+        resultado.sort((a, b) => a.codigo.localeCompare(b.codigo));
+
+        setFiltrados(resultado);
     };
 
     const cambiarEstado = async (id: number) => {
@@ -111,6 +158,7 @@ const Distritos = () => {
             </div>
 
             <div className="table-responsive">
+
                 <table className="table table-bordered table-hover align-middle">
                     <thead className="table-light">
                         <tr>
@@ -124,14 +172,67 @@ const Distritos = () => {
                             <th>F. Actualización</th>
                             <th>Acciones</th>
                         </tr>
+                        <tr>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar código"
+                                    value={filtroCodigo}
+                                    onChange={(e) => setFiltroCodigo(e.target.value)}
+                                />
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar descripción"
+                                    value={filtroDescripcion}
+                                    onChange={(e) => setFiltroDescripcion(e.target.value)}
+                                />
+                            </th>
+                            <th>
+                                <select
+                                    className="form-select form-select-sm"
+                                    value={filtroEstado}
+                                    onChange={(e) => setFiltroEstado(e.target.value as 'TODOS' | 'ACTIVO' | 'INACTIVO')}
+                                >
+                                    <option value="TODOS">Todos</option>
+                                    <option value="ACTIVO">Activo</option>
+                                    <option value="INACTIVO">Inactivo</option>
+                                </select>
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar creado por"
+                                    value={filtroCreadoPor}
+                                    onChange={(e) => setFiltroCreadoPor(e.target.value)}
+                                />
+                            </th>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar actualizado por"
+                                    value={filtroActualizadoPor}
+                                    onChange={(e) => setFiltroActualizadoPor(e.target.value)}
+                                />
+                            </th>
+                            <th></th>
+                            <th></th>
+                        </tr>
                     </thead>
                     <tbody>
                         {cargando ? (
                             <tr>
                                 <td colSpan={9} className="text-center">Cargando...</td>
                             </tr>
-                        ) : ciudades.length > 0 ? (
-                            ciudades.map((distrito, i) => (
+                        ) : filtrados.length > 0 ? (
+                            filtrados.map((distrito, i) => (
                                 <tr key={distrito.id}>
                                     <td>{i + 1}</td>
                                     <td>{distrito.codigo}</td>

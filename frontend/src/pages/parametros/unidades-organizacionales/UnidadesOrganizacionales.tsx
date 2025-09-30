@@ -31,6 +31,23 @@ const UnidadesOrganizacionales = () => {
     const [unidades, setUnidades] = useState<UnidadOrganizacional[]>([]);
     const [cargando, setCargando] = useState(true);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
+    const [filtros, setFiltros] = useState({
+        codigo: '',
+        descripcion: '',
+        estado: '',
+        area: '',
+        creado_por: '',
+        actualizado_por: '',
+    });
+    const manejarCambioFiltro = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    ) => {
+        const { name, value } = e.target;
+        setFiltros((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -108,12 +125,38 @@ const UnidadesOrganizacionales = () => {
         }
     };
 
+    const unidadesFiltradas = [...unidades]
+        .sort((a, b) => a.codigo.localeCompare(b.codigo))
+        .filter((unidad) => {
+            const filtroCodigo = unidad.codigo.toLowerCase().includes(filtros.codigo.toLowerCase());
+            const filtroDescripcion = unidad.descripcion.toLowerCase().includes(filtros.descripcion.toLowerCase());
+            const filtroEstado = filtros.estado
+                ? unidad.estado.toLowerCase() === filtros.estado.toLowerCase()
+                : true;
+            const filtroArea = unidad.area?.codigo.toLowerCase().includes(filtros.area.toLowerCase());
+            const filtroCreadoPor = filtros.creado_por
+                ? unidad.creado_por?.nombre.toLowerCase().includes(filtros.creado_por.toLowerCase()) ?? false
+                : true;
+            const filtroActualizadoPor = filtros.actualizado_por
+                ? unidad.actualizado_por?.nombre.toLowerCase().includes(filtros.actualizado_por.toLowerCase()) ?? false
+                : true;
+
+            return (
+                filtroCodigo &&
+                filtroDescripcion &&
+                filtroEstado &&
+                filtroArea &&
+                filtroCreadoPor &&
+                filtroActualizadoPor
+            );
+        });
+
     return (
         <div className="container mt-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h4 className="mb-0">Unidades Organizacionales</h4>
-                    <p className="text-muted small">Gestión de registros por unidad</p>
+                    <p className="text-muted small">Gestión de registros por Unidad Organizacional</p>
                 </div>
 
                 <div className="d-flex flex-wrap align-items-center gap-2">
@@ -169,14 +212,83 @@ const UnidadesOrganizacionales = () => {
                             <th>Fecha de Actualización</th>
                             <th>Acciones</th>
                         </tr>
+                        <tr>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="codigo"
+                                    value={filtros.codigo}
+                                    onChange={manejarCambioFiltro}
+                                    className="form-control form-control-sm"
+                                    placeholder="Buscar código"
+                                />
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="descripcion"
+                                    value={filtros.descripcion}
+                                    onChange={manejarCambioFiltro}
+                                    className="form-control form-control-sm"
+                                    placeholder="Buscar descripción"
+                                />
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="area"
+                                    value={filtros.area}
+                                    onChange={manejarCambioFiltro}
+                                    className="form-control form-control-sm"
+                                    placeholder="Buscar área"
+                                />
+                            </th>
+                            <th>
+                                <select
+                                    name="estado"
+                                    value={filtros.estado}
+                                    onChange={manejarCambioFiltro}
+                                    className="form-select form-select-sm"
+                                >
+                                    <option value="">Todos</option>
+                                    <option value="ACTIVO">Activo</option>
+                                    <option value="INACTIVO">Inactivo</option>
+                                </select>
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="creado_por"
+                                    value={filtros.creado_por}
+                                    onChange={manejarCambioFiltro}
+                                    className="form-control form-control-sm"
+                                    placeholder="Buscar creador"
+                                />
+                            </th>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="actualizado_por"
+                                    value={filtros.actualizado_por}
+                                    onChange={manejarCambioFiltro}
+                                    className="form-control form-control-sm"
+                                    placeholder="Buscar actualizador"
+                                />
+                            </th>
+                            <th></th>
+                            <th></th>
+                        </tr>
                     </thead>
+
                     <tbody>
                         {cargando ? (
                             <tr>
                                 <td colSpan={10} className="text-center">Cargando datos...</td>
                             </tr>
-                        ) : unidades.length > 0 ? (
-                            unidades.map((item, index) => (
+                        ) : unidadesFiltradas.length > 0 ? (
+                            unidadesFiltradas.map((item, index) => (
                                 <tr key={item.id}>
                                     <td>{index + 1}</td>
                                     <td>{item.codigo}</td>

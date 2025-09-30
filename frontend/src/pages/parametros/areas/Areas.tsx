@@ -24,6 +24,24 @@ const Areas = () => {
     const [areas, setAreas] = useState<Area[]>([]);
     const [cargando, setCargando] = useState(true);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
+    const [filtros, setFiltros] = useState({
+        codigo: '',
+        descripcion: '',
+        estado: '',
+        creado_por: '',
+        actualizado_por: '',
+    });
+
+    const manejarCambioFiltro = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    ) => {
+        const { name, value } = e.target;
+        setFiltros((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -98,6 +116,29 @@ const Areas = () => {
         }
     };
 
+    const areasFiltradas = [...areas] // copiamos el array para no mutar el original
+        .sort((a, b) => a.codigo.localeCompare(b.codigo)) // ordenamos por código (alfabéticamente)
+        .filter((area) => {
+            const filtroCodigo = area.codigo.toLowerCase().includes(filtros.codigo.toLowerCase());
+            const filtroDescripcion = area.descripcion.toLowerCase().includes(filtros.descripcion.toLowerCase());
+            const filtroEstado = filtros.estado
+                ? area.estado.toLowerCase() === filtros.estado.toLowerCase()
+                : true;
+            const filtroCreadoPor = filtros.creado_por
+                ? area.creado_por?.nombre.toLowerCase().includes(filtros.creado_por.toLowerCase()) ?? false
+                : true;
+            const filtroActualizadoPor = filtros.actualizado_por
+                ? area.actualizado_por?.nombre.toLowerCase().includes(filtros.actualizado_por.toLowerCase()) ?? false
+                : true;
+
+            return (
+                filtroCodigo &&
+                filtroDescripcion &&
+                filtroEstado &&
+                filtroCreadoPor &&
+                filtroActualizadoPor
+            );
+        });
     return (
         <div className="container mt-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
@@ -154,14 +195,73 @@ const Areas = () => {
                             <th>Fecha de Actualización</th>
                             <th>Acciones</th>
                         </tr>
+
+                        <tr>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="codigo"
+                                    className="form-control form-control-sm"
+                                    value={filtros.codigo}
+                                    onChange={manejarCambioFiltro}
+                                    placeholder="Buscar código"
+                                />
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="descripcion"
+                                    className="form-control form-control-sm"
+                                    value={filtros.descripcion}
+                                    onChange={manejarCambioFiltro}
+                                    placeholder="Buscar descripción"
+                                />
+                            </th>
+                            <th>
+                                <select
+                                    name="estado"
+                                    className="form-select form-select-sm"
+                                    value={filtros.estado}
+                                    onChange={manejarCambioFiltro}
+                                >
+                                    <option value="">Todos</option>
+                                    <option value="ACTIVO">Activo</option>
+                                    <option value="INACTIVO">Inactivo</option>
+                                </select>
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="creado_por"
+                                    className="form-control form-control-sm"
+                                    value={filtros.creado_por}
+                                    onChange={manejarCambioFiltro}
+                                    placeholder="Buscar creador"
+                                />
+                            </th>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="actualizado_por"
+                                    className="form-control form-control-sm"
+                                    value={filtros.actualizado_por}
+                                    onChange={manejarCambioFiltro}
+                                    placeholder="Buscar actualizador"
+                                />
+                            </th>
+                            <th></th>
+                            <th></th>
+                        </tr>
                     </thead>
                     <tbody>
                         {cargando ? (
                             <tr>
                                 <td colSpan={9} className="text-center">Cargando datos...</td>
                             </tr>
-                        ) : areas.length > 0 ? (
-                            areas.map((area, index) => (
+                        ) : areasFiltradas.length > 0 ? (
+                            areasFiltradas.map((area, index) => (
                                 <tr key={area.id}>
                                     <td>{index + 1}</td>
                                     <td>{area.codigo}</td>

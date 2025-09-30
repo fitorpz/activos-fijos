@@ -38,6 +38,24 @@ const Ambientes = () => {
     const [ambientes, setAmbientes] = useState<Ambiente[]>([]);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
     const [cargando, setCargando] = useState(true);
+    const [filtros, setFiltros] = useState({
+        codigo: '',
+        descripcion: '',
+        estado: '',
+        unidad_organizacional: '',
+        area: '',
+        creado_por: '',
+        actualizado_por: '',
+    });
+    const manejarCambioFiltro = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    ) => {
+        const { name, value } = e.target;
+        setFiltros((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -100,6 +118,37 @@ const Ambientes = () => {
         }
     };
 
+    const ambientesFiltrados = ambientes
+        .sort((a, b) => a.codigo.localeCompare(b.codigo))
+        .filter((ambiente) => {
+            const filtroCodigo = ambiente.codigo.toLowerCase().includes(filtros.codigo.toLowerCase());
+            const filtroDescripcion = ambiente.descripcion.toLowerCase().includes(filtros.descripcion.toLowerCase());
+            const filtroEstado = filtros.estado
+                ? ambiente.estado.toLowerCase() === filtros.estado.toLowerCase()
+                : true;
+            const filtroUnidadOrg = ambiente.unidad_organizacional?.codigo
+                ?.toLowerCase()
+                .includes(filtros.unidad_organizacional.toLowerCase());
+            const filtroArea = ambiente.unidad_organizacional?.area?.codigo
+                ?.toLowerCase()
+                .includes(filtros.area.toLowerCase());
+            const filtroCreadoPor = filtros.creado_por
+                ? ambiente.creado_por?.nombre.toLowerCase().includes(filtros.creado_por.toLowerCase()) ?? false
+                : true;
+            const filtroActualizadoPor = filtros.actualizado_por
+                ? ambiente.actualizado_por?.nombre.toLowerCase().includes(filtros.actualizado_por.toLowerCase()) ?? false
+                : true;
+
+            return (
+                filtroCodigo &&
+                filtroDescripcion &&
+                filtroEstado &&
+                filtroUnidadOrg &&
+                filtroArea &&
+                filtroCreadoPor &&
+                filtroActualizadoPor
+            );
+        });
 
     return (
         <div className="container mt-4">
@@ -163,6 +212,84 @@ const Ambientes = () => {
                             <th>Fecha de Actualización</th>
                             <th>Acciones</th>
                         </tr>
+                        <tr>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="area"
+                                    value={filtros.area}
+                                    onChange={manejarCambioFiltro}
+                                    className="form-control form-control-sm"
+                                    placeholder="Buscar área"
+                                />
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="unidad_organizacional"
+                                    value={filtros.unidad_organizacional}
+                                    onChange={manejarCambioFiltro}
+                                    className="form-control form-control-sm"
+                                    placeholder="Buscar unidad"
+                                />
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="codigo"
+                                    value={filtros.codigo}
+                                    onChange={manejarCambioFiltro}
+                                    className="form-control form-control-sm"
+                                    placeholder="Buscar código"
+                                />
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="descripcion"
+                                    value={filtros.descripcion}
+                                    onChange={manejarCambioFiltro}
+                                    className="form-control form-control-sm"
+                                    placeholder="Buscar descripción"
+                                />
+                            </th>
+                            <th>
+                                <select
+                                    name="estado"
+                                    value={filtros.estado}
+                                    onChange={manejarCambioFiltro}
+                                    className="form-select form-select-sm"
+                                >
+                                    <option value="">Todos</option>
+                                    <option value="ACTIVO">Activo</option>
+                                    <option value="INACTIVO">Inactivo</option>
+                                </select>
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="creado_por"
+                                    value={filtros.creado_por}
+                                    onChange={manejarCambioFiltro}
+                                    className="form-control form-control-sm"
+                                    placeholder="Buscar creador"
+                                />
+                            </th>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    name="actualizado_por"
+                                    value={filtros.actualizado_por}
+                                    onChange={manejarCambioFiltro}
+                                    className="form-control form-control-sm"
+                                    placeholder="Buscar actualizador"
+                                />
+                            </th>
+                            <th></th>
+                            <th></th>
+                        </tr>
                     </thead>
                     <tbody>
                         {cargando ? (
@@ -171,8 +298,8 @@ const Ambientes = () => {
                                     Cargando datos...
                                 </td>
                             </tr>
-                        ) : ambientes.length > 0 ? (
-                            ambientes.map((item, index) => (
+                        ) : ambientesFiltrados.length > 0 ? (
+                            ambientesFiltrados.map((item, index) => (
                                 <tr key={item.id}>
                                     <td>{index + 1}</td>
                                     <td>{item.unidad_organizacional?.area?.codigo || '—'}</td>

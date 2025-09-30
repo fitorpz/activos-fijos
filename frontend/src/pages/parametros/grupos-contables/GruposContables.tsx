@@ -27,10 +27,57 @@ const GruposContables = () => {
     const [cargando, setCargando] = useState(true);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
     const navigate = useNavigate();
+    const [filtroCodigo, setFiltroCodigo] = useState('');
+    const [filtroDescripcion, setFiltroDescripcion] = useState('');
+    const [filtroEstado, setFiltroEstado] = useState<'TODOS' | 'ACTIVO' | 'INACTIVO'>('TODOS');
+    const [filtroCreadoPor, setFiltroCreadoPor] = useState('');
+    const [filtroActualizadoPor, setFiltroActualizadoPor] = useState('');
+    const [filtrados, setFiltrados] = useState<GrupoContable[]>([]);
 
     useEffect(() => {
         obtenerGrupos();
     }, [estadoFiltro]);
+
+    useEffect(() => {
+        aplicarFiltros();
+    }, [grupos, filtroCodigo, filtroDescripcion, filtroEstado, filtroCreadoPor, filtroActualizadoPor]);
+
+    const aplicarFiltros = () => {
+        let resultado = [...grupos];
+
+        if (filtroEstado !== 'TODOS') {
+            resultado = resultado.filter(g => g.estado === filtroEstado);
+        }
+
+        if (filtroCodigo.trim() !== '') {
+            resultado = resultado.filter(g =>
+                g.codigo.toLowerCase().includes(filtroCodigo.toLowerCase())
+            );
+        }
+
+        if (filtroDescripcion.trim() !== '') {
+            resultado = resultado.filter(g =>
+                g.descripcion.toLowerCase().includes(filtroDescripcion.toLowerCase())
+            );
+        }
+
+        if (filtroCreadoPor.trim() !== '') {
+            resultado = resultado.filter(g =>
+                g.creado_por?.nombre.toLowerCase().includes(filtroCreadoPor.toLowerCase())
+            );
+        }
+
+        if (filtroActualizadoPor.trim() !== '') {
+            resultado = resultado.filter(g =>
+                g.actualizado_por?.nombre?.toLowerCase().includes(filtroActualizadoPor.toLowerCase())
+            );
+        }
+
+        // Ordenar por código
+        resultado.sort((a, b) => a.codigo.localeCompare(b.codigo));
+
+        setFiltrados(resultado);
+    };
 
     const obtenerGrupos = async () => {
         const token = localStorage.getItem('token');
@@ -163,14 +210,71 @@ const GruposContables = () => {
                             <th>Fecha de Actualización</th>
                             <th>Acciones</th>
                         </tr>
+                        <tr>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar código"
+                                    value={filtroCodigo}
+                                    onChange={(e) => setFiltroCodigo(e.target.value)}
+                                />
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar descripción"
+                                    value={filtroDescripcion}
+                                    onChange={(e) => setFiltroDescripcion(e.target.value)}
+                                />
+                            </th>
+                            <th></th>
+                            <th></th>
+                            <th>
+                                <select
+                                    className="form-select form-select-sm"
+                                    value={filtroEstado}
+                                    onChange={(e) =>
+                                        setFiltroEstado(e.target.value as 'TODOS' | 'ACTIVO' | 'INACTIVO')
+                                    }
+                                >
+                                    <option value="TODOS">Todos</option>
+                                    <option value="ACTIVO">Activo</option>
+                                    <option value="INACTIVO">Inactivo</option>
+                                </select>
+                            </th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar creado por"
+                                    value={filtroCreadoPor}
+                                    onChange={(e) => setFiltroCreadoPor(e.target.value)}
+                                />
+                            </th>
+                            <th></th>
+                            <th>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Filtrar actualizado por"
+                                    value={filtroActualizadoPor}
+                                    onChange={(e) => setFiltroActualizadoPor(e.target.value)}
+                                />
+                            </th>
+                            <th></th>
+                            <th></th>
+                        </tr>
                     </thead>
                     <tbody>
                         {cargando ? (
                             <tr>
                                 <td colSpan={11} className="text-center">Cargando datos...</td>
                             </tr>
-                        ) : grupos.length > 0 ? (
-                            grupos.map((grupo, index) => (
+                        ) : filtrados.length > 0 ? (
+                            filtrados.map((grupo, index) => (
                                 <tr key={grupo.id}>
                                     <td>{index + 1}</td>
                                     <td>{grupo.codigo}</td>
