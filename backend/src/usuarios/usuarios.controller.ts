@@ -33,15 +33,10 @@ export class UsuariosController {
         @Req() request: Request
     ) {
         const user = request.user as any;
-
-        console.log('🔐 Usuario autenticado desde token:', user);
-
         if (!user || !user.id) {
             throw new BadRequestException('No se pudo obtener el usuario autenticado.');
         }
-
         const usuario = await this.usuariosService.create(createDto, user.id);
-
         await this.userLogService.registrarLog(
             usuario.id,
             'Registró un nuevo usuario',
@@ -49,7 +44,6 @@ export class UsuariosController {
             request.ip,
             request.headers['user-agent'],
         );
-
         return {
             message: 'Usuario registrado correctamente',
             usuario,
@@ -99,5 +93,4 @@ export class UsuariosController {
         await this.usuariosService.restaurar(id);
         return { message: 'Usuario restaurado correctamente' };
     }
-
 }

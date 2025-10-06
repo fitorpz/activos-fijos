@@ -41,12 +41,20 @@ export class UfvsService {
       .leftJoinAndSelect('ufv.actualizado_por', 'actualizado_por')
       .orderBy('ufv.id', 'DESC');
 
-    if (estado && estado !== 'todos') {
-      query.andWhere('ufv.estado = :estado', { estado: estado.toUpperCase() });
-    }
+   // if (estado && estado !== 'todos') {
+   //   query.andWhere('ufv.estado = :estado', { estado: estado.toUpperCase() });
+   // }
 
-    return query.getMany();
+//    return query.getMany();
+ if (estado) {
+    query.where('ufv.estado = :estado', { estado });
   }
+
+  query.orderBy('ufv.fecha', 'ASC'); // Ordenar por fecha descendente
+
+  return await query.getMany();
+}
+ // }
 
   async findOne(id: number): Promise<Ufv> {
     const ufv = await this.ufvRepo.findOne({

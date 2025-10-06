@@ -1,17 +1,14 @@
 import axios from 'axios';
+import { Usuario } from '../interfaces/usuario';
 
 const API_URL = 'http://localhost:3001';
 
-// ✅ Definir tipo de Usuario (puedes mover a types.ts si quieres)
-export interface Usuario {
-  id: number;
-  correo: string;
-  rol: string;
-}
-
-// ✅ Tipar la respuesta del GET
-export const listarUsuarios = () => {
-  return axios.get<Usuario[]>(`${API_URL}/usuarios`);
+export const listarUsuarios = (token: string) => {
+  return axios.get<Usuario[]>('http://localhost:3001/usuarios', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 };
 
 export const registrarUsuario = (data: any) => {

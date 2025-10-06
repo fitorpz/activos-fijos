@@ -99,4 +99,12 @@ export class CreateEdificioDto {
 
     observaciones_tecnicas?: string;
 
+    cargo_id?: number;
+    auxiliar_id?: number;
+    nucleo_id?: number;
+    distrito_id?: number;
+    direccion_administrativa_id?: number;
+    ciudad_id?: number;
+
+
 }

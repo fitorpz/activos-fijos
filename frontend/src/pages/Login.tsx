@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import logo from '../assets/img/logo_gamsucre_negro.png'
 
 const Login = () => {
     const [correo, setCorreo] = useState('');
@@ -24,34 +25,25 @@ const Login = () => {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-
         if (!validarCampos()) return;
 
         try {
             const response = await fetch('http://localhost:3001/auth/login', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ correo, contrasena }),
             });
 
             const data = await response.json();
-            console.log('Respuesta login:', data); // ✅ Depuración
 
-            // Verifica si hay error
             if (!response.ok || !data.access_token || !data.usuario) {
                 setErrores([data.message || 'Credenciales incorrectas.']);
                 return;
             }
 
-            // ✅ Guardar token y datos del usuario en localStorage
             localStorage.setItem('token', data.access_token);
             localStorage.setItem('usuario', JSON.stringify(data.usuario));
-
-            // ✅ Redireccionar al dashboard (forzar recarga para que detecte token)
-            window.location.href = '/parametros'; // Esto recarga la página completamente.
-
+            window.location.href = '/parametros';
 
         } catch (error) {
             console.error('Error en login:', error);
@@ -59,11 +51,27 @@ const Login = () => {
         }
     };
 
-
     return (
-        <div className="container mt-5 d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
-            <div className="card shadow p-4" style={{ maxWidth: '400px', width: '100%' }}>
-                <h3 className="text-center mb-4">Acceder al sistema</h3>
+        <div
+            className="container-fluid d-flex justify-content-center align-items-center"
+            style={{ minHeight: '100vh', backgroundColor: 'var(--color-secondary-100)' }}
+        >
+            <div className="card shadow p-4" style={{ maxWidth: '400px', width: '100%', borderRadius: '12px' }}>
+                <div
+                    className="d-flex justify-content-center align-items-center mb-4"
+                    style={{ width: '100%' }}
+                >
+                    <img
+                        src={logo}
+                        alt="Logo GAMS"
+                        style={{
+                            maxWidth: '80%',
+                            height: 'auto',
+                            objectFit: 'contain',
+                        }}
+                    />
+                </div>
+
 
                 {errores.length > 0 && (
                     <div className="alert alert-danger">
@@ -99,7 +107,14 @@ const Login = () => {
                         />
                     </div>
                     <div className="d-grid mb-3">
-                        <button type="submit" className="btn btn-primary">
+                        <button
+                            type="submit"
+                            className="btn"
+                            style={{
+                                backgroundColor: 'var(--color-success-500)',
+                                color: 'white'
+                            }}
+                        >
                             Acceder
                         </button>
                     </div>

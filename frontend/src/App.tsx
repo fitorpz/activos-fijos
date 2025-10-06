@@ -1,14 +1,20 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import { RegistroUsuario } from './pages/RegistroUsuario';
-import RecuperarContrasena from './pages/RecuperarContrasena';
-import PrimeraVez from './pages/PrimeraVez';
-import CuentaDeshabilitada from './pages/CuentaDeshabilitada';
+import { RegistroUsuario } from './pages/usuarios/RegistroUsuario';
+import RecuperarContrasena from './pages/usuarios/RecuperarContrasena';
+import PrimeraVez from './pages/usuarios/PrimeraVez';
+import CuentaDeshabilitada from './pages/usuarios/CuentaDeshabilitada';
+
+import ListaRoles from './pages/usuarios/roles/ListaRoles';
+import CrearRol from './pages/usuarios/roles/CrearRol';
+import EditarRol from './pages/usuarios/roles/EditarRol';
+
+
 import PanelControl from './pages/PanelControl';
 import Layout from './components/Layout';
-import { EditarUsuario } from './pages/EditarUsuario';
-import Usuarios from './pages/Usuarios';
+import { EditarUsuario } from './pages/usuarios/EditarUsuario';
+import Usuarios from './pages/usuarios/Usuarios';
 import ListaEdificios from './pages/activosFijos/edificios/ListaEdificios';
 import RegistroEdificio from './pages/activosFijos/edificios/RegistroEdificio';
 import EditarEdificio from './pages/activosFijos/edificios/EditarEdificio';
@@ -80,6 +86,12 @@ function App() {
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/usuarios/crear" element={<RegistroUsuario />} />
             <Route path="/usuarios/editar/:id" element={<EditarUsuario />} />
+            <Route path="/usuarios/roles" element={<ListaRoles />} />
+            <Route path="/usuarios/roles/crear" element={<CrearRol />} />
+            <Route path="/usuarios/roles/editar/:id" element={<EditarRol />} />
+
+
+
             <Route path="/edificios" element={<ListaEdificios />} />
             <Route path="/edificios/nuevo" element={<RegistroEdificio />} />
             <Route path="/edificios/editar/:id" element={<EditarEdificio />} />

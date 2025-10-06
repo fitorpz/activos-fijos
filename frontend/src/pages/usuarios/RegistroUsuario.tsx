@@ -1,20 +1,42 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { listarRoles } from '../../api/roles';
+import { Usuario } from '../../interfaces/usuario';
+
+interface Rol {
+    id: number;
+    nombre: string;
+    slug?: string;
+    descripcion?: string;
+}
 
 export const RegistroUsuario = () => {
     const [correo, setCorreo] = useState('');
     const [contrasena, setContrasena] = useState('');
     const [nombre, setNombre] = useState('');
-    const [rol, setRol] = useState('superadministrador');
+    const [rol_id, setRolId] = useState<number | ''>(''); // puede estar vacío mientras no se seleccione
+    const [roles, setRoles] = useState<Rol[]>([]);
     const navigate = useNavigate();
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault(); // ⚠️ Previene que se recargue la página
+    useEffect(() => {
+        const fetchRoles = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) throw new Error('Token no encontrado');
+                const res = await listarRoles(token);
+                setRoles(res.data.data || []);
+            } catch (error) {
+                alert('Error al cargar roles');
+            }
+        };
 
-        console.log('📤 Enviando datos de usuario...');
+        fetchRoles();
+    }, []);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
 
         const token = localStorage.getItem('token');
-
         if (!token) {
             alert('Token no encontrado. Por favor inicia sesión nuevamente.');
             return;
@@ -30,8 +52,8 @@ export const RegistroUsuario = () => {
                 body: JSON.stringify({
                     correo,
                     contrasena,
-                    rol,
                     nombre,
+                    rol_id,
                 }),
             });
 
@@ -40,13 +62,9 @@ export const RegistroUsuario = () => {
                 throw new Error(data.message || 'Error al registrar usuario');
             }
 
-            const data = await res.json();
-            console.log('✅ Usuario creado:', data);
-
             alert('Usuario registrado con éxito');
             navigate('/usuarios');
         } catch (err: any) {
-            console.error('❌ Error:', err);
             alert('Error al registrar usuario: ' + (err.message || 'Error desconocido'));
         }
     };
@@ -55,10 +73,9 @@ export const RegistroUsuario = () => {
         <div className="container mt-5 d-flex justify-content-center">
             <div className="card shadow-sm p-4" style={{ maxWidth: '500px', width: '100%' }}>
                 <h4 className="mb-4 text-center">Registrar Usuario</h4>
-
                 <form onSubmit={handleSubmit}>
                     <div className="mb-3">
-                        <label className="form-label">Correo</label>
+                        <label className="form-label">Correo electrónico</label>
                         <input
                             type="email"
                             className="form-control"
@@ -80,13 +97,13 @@ export const RegistroUsuario = () => {
                     </div>
 
                     <div className="mb-3">
-                        <label className="form-label">Nombre</label>
+                        <label className="form-label">Nombre completo</label>
                         <input
                             type="text"
                             className="form-control"
                             value={nombre}
                             onChange={(e) => setNombre(e.target.value)}
-                            required
+                            placeholder="(opcional)"
                         />
                     </div>
 
@@ -94,18 +111,17 @@ export const RegistroUsuario = () => {
                         <label className="form-label">Rol</label>
                         <select
                             className="form-select"
-                            value={rol}
-                            onChange={(e) => setRol(e.target.value)}
+                            value={rol_id}
+                            onChange={(e) => setRolId(Number(e.target.value))}
                             required
                         >
-                            <option value="superadministrador">Superadministrador</option>
-                            <option value="admin_usuarios">Administrador de Usuarios</option>
-                            <option value="administrador">Administrador</option>
-                            <option value="supervisor">Supervisor</option>
-                            <option value="tecnico">Técnico</option>
-                            <option value="visitante">Visitante</option>
+                            <option value="">Seleccione un rol</option>
+                            {roles.map((rol) => (
+                                <option key={rol.id} value={rol.id}>
+                                    {rol.nombre}
+                                </option>
+                            ))}
                         </select>
-
                     </div>
 
                     <div className="d-grid">

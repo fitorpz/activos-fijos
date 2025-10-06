@@ -23,7 +23,7 @@ async function bootstrap() {
     }
 
     await usuarioService.create(
-        { correo, contrasena, nombre, rol },
+        { correo, contrasena, nombre, rol_id: 1 },
         undefined,  // creadorId
         true        // yaHasheado = true
     );

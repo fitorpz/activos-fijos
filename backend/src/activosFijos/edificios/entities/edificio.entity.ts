@@ -1,6 +1,11 @@
 import {
-  Entity, Column, PrimaryGeneratedColumn, DeleteDateColumn, CreateDateColumn, UpdateDateColumn, ManyToOne,
-  JoinColumn
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Usuario } from 'src/usuarios/entities/usuario.entity';
 
@@ -12,10 +17,9 @@ export enum EstadoActivo {
   PESIMO_DAR_DE_BAJA = 'PESIMO_DAR_DE_BAJA',
   NO_ENCONTRADO = 'NO_ENCONTRADO',
 }
+
 @Entity('edificios')
-
 export class Edificio {
-
   @PrimaryGeneratedColumn()
   id_311: number;
 
@@ -42,6 +46,42 @@ export class Edificio {
 
   @Column({ nullable: true })
   ambiente_nombre: string;
+
+  @Column({ nullable: true })
+  cargo_id: number;
+
+  @Column({ nullable: true })
+  nombre_cargo: string;
+
+  @Column({ nullable: true })
+  auxiliar_id: number;
+
+  @Column({ nullable: true })
+  nombre_auxiliar: string;
+
+  @Column({ nullable: true })
+  nucleo_id: number;
+
+  @Column({ nullable: true })
+  nombre_nucleo: string;
+
+  @Column({ nullable: true })
+  distrito_id: number;
+
+  @Column({ nullable: true })
+  nombre_distrito: string;
+
+  @Column({ nullable: true })
+  direccion_administrativa_id: number;
+
+  @Column({ nullable: true })
+  nombre_direccion_administrativa: string;
+
+  @Column({ nullable: true })
+  ciudad_id: number;
+
+  @Column({ nullable: true })
+  nombre_ciudad: string;
 
   @Column({ default: 'ACTIVO', nullable: true })
   estado: string;
@@ -158,154 +198,7 @@ export class Edificio {
   servicio_311_1: string;
 
   @Column({ nullable: true })
-  id_per: number;
-
-  @Column({ nullable: true })
-  tdi_per: string;
-
-  @Column({ nullable: true })
-  ndi_per: string;
-
-  @Column({ nullable: true })
-  expedido_per: string;
-
-  @Column({ nullable: true })
-  nombre_per: string;
-
-  @Column({ nullable: true })
-  ap_paterno_per: string;
-
-  @Column({ nullable: true })
-  ap_materno_per: string;
-
-  @Column({ nullable: true })
-  ap_conyuge_per: string;
-
-  @Column({ nullable: true })
-  sexo_per: string;
-
-  @Column({ type: 'date', nullable: true })
-  f_nacimiento_per: Date;
-
-  @Column({ nullable: true })
-  e_civil_per: string;
-
-  @Column({ nullable: true })
-  profesion_per: string;
-
-  @Column({ nullable: true })
-  direccion_per: string;
-
-  @Column({ nullable: true })
-  telefono_per: string;
-
-  @Column({ nullable: true })
-  celular_per: string;
-
-  @Column({ nullable: true })
-  email_per: string;
-
-  @Column({ nullable: true })
-  estado_per: string;
-
-  @Column({ nullable: true })
-  id_clasi: number;
-
-  @Column({ nullable: true })
-  codigo_clasi: string;
-
-  @Column({ nullable: true })
-  nombre_clasi: string;
-
-  @Column({ nullable: true })
-  descripcion_clasi: string;
-
-  @Column({ nullable: true })
-  id_sg_clasi: number;
-
-  @Column({ nullable: true })
-  id_func: number;
-
-  @Column({ nullable: true })
-  tipo_func: string;
-
-  @Column({ nullable: true })
-  num_file: string;
-
-  @Column({ nullable: true })
-  item_func: string;
-
-  @Column({ nullable: true })
-  telefono_func: string;
-
-  @Column({ nullable: true })
-  interno_func: string;
-
-  @Column({ nullable: true })
-  estado_func: string;
-
-  @Column({ nullable: true })
-  id_cargo_func: number;
-
-  @Column({ nullable: true })
-  cargo_id: number;
-
-  @Column({ nullable: true })
-  id_ubi_func: number;
-
-  @Column({ nullable: true })
-  id_act_func: number;
-
-  @Column({ nullable: true })
-  id_cargo: number;
-
-  @Column({ nullable: true })
-  codigo_cargo: string;
-
-  @Column({ nullable: true })
-  nombre_cargo: string;
-
-  @Column({ nullable: true })
-  descripcion_cargo: string;
-
-  @Column({ nullable: true })
-  estado_cargo: string;
-
-  @Column({ nullable: true })
-  id_af_cargo: number;
-
-  @Column({ nullable: true })
-  id_ubi: number;
-
-  @Column({ nullable: true })
-  codigo_ubi: string;
-
-  @Column({ nullable: true })
-  nombre_ubi: string;
-
-  @Column({ nullable: true })
-  direccion_ubi: string;
-
-  @Column({ nullable: true })
-  distrito_ubi: string;
-
-  @Column({ nullable: true })
   observaciones_ubi: string;
-
-  @Column({ nullable: true })
-  estado_ubi: string;
-
-  @Column({ nullable: true })
-  id_af: number;
-
-  @Column({ nullable: true })
-  codigo_af: string;
-
-  @Column({ nullable: true })
-  nombre_af: string;
-
-  @Column({ nullable: true })
-  estado_af: string;
 
   @Column({
     type: 'enum',
@@ -313,7 +206,6 @@ export class Edificio {
     nullable: true,
   })
   estado_activo: EstadoActivo;
-
 
   @CreateDateColumn()
   fecha_creacion: Date;
@@ -340,9 +232,4 @@ export class Edificio {
 
   @Column({ nullable: true })
   codigo_auxiliar: string; // Ej: 311.00.0001
-
-
 }
-
-
-

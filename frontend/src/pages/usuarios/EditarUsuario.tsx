@@ -1,20 +1,38 @@
-// src/pages/EditarUsuario.tsx
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { listarRoles } from '../../api/roles';
+import { Usuario } from '../../interfaces/usuario';
+
+interface Rol {
+    id: number;
+    nombre: string;
+    slug?: string;
+    descripcion?: string;
+}
 
 export const EditarUsuario = () => {
-    const { id } = useParams();
+    const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
     const [correo, setCorreo] = useState('');
     const [nombre, setNombre] = useState('');
-    const [rol, setRol] = useState('usuario');
+    const [contrasena, setContrasena] = useState('');
+    const [rol_id, setRolId] = useState<number | ''>('');
+    const [roles, setRoles] = useState<Rol[]>([]);
     const [cargando, setCargando] = useState(true);
 
+    // Cargar datos del usuario y roles
     useEffect(() => {
-        const obtenerUsuario = async () => {
+        const cargarDatos = async () => {
             try {
                 const token = localStorage.getItem('token');
+                if (!token) throw new Error('Token no encontrado');
+
+                // Cargar roles
+                const rolesRes = await listarRoles(token);
+                setRoles(rolesRes.data.data || []);
+
+                // Cargar usuario
                 const res = await fetch(`http://localhost:3001/usuarios/${id}`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -22,19 +40,19 @@ export const EditarUsuario = () => {
                 });
 
                 if (!res.ok) throw new Error('Error al obtener datos del usuario');
+                const data: Usuario = await res.json();
 
-                const data = await res.json();
                 setCorreo(data.correo);
                 setNombre(data.nombre || '');
-                setRol(data.rol);
+                setRolId(typeof data.rol === 'object' && data.rol ? data.rol.id : '');
                 setCargando(false);
             } catch (err) {
-                alert('Error al cargar usuario');
+                alert('Error al cargar usuario o roles');
                 navigate('/usuarios');
             }
         };
 
-        obtenerUsuario();
+        cargarDatos();
     }, [id, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -42,17 +60,29 @@ export const EditarUsuario = () => {
 
         try {
             const token = localStorage.getItem('token');
+            if (!token) throw new Error('Token no encontrado');
+
+            const payload: any = {
+                correo,
+                nombre,
+                rol_id,
+            };
+
+            // Solo incluir contraseña si fue escrita
+            if (contrasena.trim() !== '') {
+                payload.contrasena = contrasena;
+            }
+
             const res = await fetch(`http://localhost:3001/usuarios/${id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ correo, nombre, rol }),
+                body: JSON.stringify(payload),
             });
 
             if (!res.ok) throw new Error('Error al actualizar usuario');
-
             alert('Usuario actualizado con éxito');
             navigate('/usuarios');
         } catch (error: any) {
@@ -89,15 +119,31 @@ export const EditarUsuario = () => {
                         />
                     </div>
 
+                    <div className="mb-3">
+                        <label className="form-label">Nueva contraseña (opcional)</label>
+                        <input
+                            type="password"
+                            className="form-control"
+                            value={contrasena}
+                            onChange={(e) => setContrasena(e.target.value)}
+                            placeholder="Dejar en blanco si no se cambia"
+                        />
+                    </div>
+
                     <div className="mb-4">
                         <label className="form-label">Rol</label>
                         <select
                             className="form-select"
-                            value={rol}
-                            onChange={(e) => setRol(e.target.value)}
+                            value={rol_id}
+                            onChange={(e) => setRolId(Number(e.target.value))}
+                            required
                         >
-                            <option value="superadministrador">Superadministrador</option>
-                            <option value="usuario">Usuario</option>
+                            <option value="">Seleccione un rol</option>
+                            {roles.map((rol) => (
+                                <option key={rol.id} value={rol.id}>
+                                    {rol.nombre}
+                                </option>
+                            ))}
                         </select>
                     </div>
 

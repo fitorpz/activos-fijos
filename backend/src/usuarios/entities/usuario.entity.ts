@@ -7,7 +7,7 @@ import {
     ManyToOne,
     JoinColumn,
 } from 'typeorm';
-import { RolUsuario } from '../enums/rol-usuario.enum';
+import { Rol } from './rol.entity';
 
 @Entity('usuarios')
 export class Usuario {
@@ -20,30 +20,26 @@ export class Usuario {
     @Column()
     contrasena: string;
 
-    @Column({
-        type: 'enum',
-        enum: RolUsuario,
-        default: RolUsuario.VISITANTE,
-    })
-    rol: RolUsuario;
+    @ManyToOne(() => Rol, { eager: true, nullable: true })
+    @JoinColumn({ name: 'rol_id' })
+    rol: Rol;
+
+    @Column({ nullable: true })
+    rol_id: number;
 
     @Column({ nullable: true })
     nombre: string;
 
-    // ✅ Campo explícito para guardar el ID del creador
     @Column({ nullable: true })
     creadoPorId: number;
 
-    // ✅ Relación con el usuario que lo creó
     @ManyToOne(() => Usuario, { nullable: true })
-    @JoinColumn({ name: 'creadoPorId' }) // ← VINCULA la relación
+    @JoinColumn({ name: 'creadoPorId' })
     creadoPor: Usuario;
 
     @CreateDateColumn()
     creadoEn: Date;
     
     @DeleteDateColumn({ name: 'deleted_at', type: 'timestamp', nullable: true })
-    deletedAt: Date | null; // 👈 Agrega "| null"
-
-
+    deletedAt: Date | null;
 }

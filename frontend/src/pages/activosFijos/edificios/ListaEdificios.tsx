@@ -17,11 +17,38 @@ interface Edificio {
     uso_actual_311: string;
     fecha_alta_311: string;
     estado: 'ACTIVO' | 'INACTIVO';
+
+    // NUEVOS CAMPOS
+    descripcion_edificio?: string;
+    estado_activo?: string;
+    superficie_311_1?: number;
+    observaciones_ubi?: string;
+
+    nombre_area?: string;
+    unidad_organizacional?: string;
+    ambiente?: string;
+    cargo?: string;
+    nombre_auxiliar?: string;
+    nucleo?: string;
+    distrito?: string;
+    direccion_administrativa?: string;
+    ciudad?: string;
+
+    energia_electrica?: boolean;
+    gas_domiciliario?: boolean;
+    alcantarillado?: boolean;
+    agua?: boolean;
+    telefono?: boolean;
+    celular?: boolean;
+    internet?: boolean;
+
+    // Otros si aplica
     creadoPor?: Usuario;
     actualizadoPor?: Usuario;
     fecha_creacion?: string;
     fecha_actualizacion?: string;
 }
+
 
 const ListaEdificios = () => {
     const [edificios, setEdificios] = useState<Edificio[]>([]);
@@ -114,6 +141,41 @@ const ListaEdificios = () => {
             alert(error?.response?.data?.message || '❌ Error al generar los stickers.');
         }
     };
+
+    const camposVisibles = [
+        { key: 'nombre_area', label: 'Área' },
+        { key: 'unidad_organizacional_nombre', label: 'Unidad Organizacional' },
+        { key: 'ambiente_nombre', label: 'Ambiente' },
+        { key: 'nombre_cargo', label: 'Cargo' },
+        { key: 'nombre_auxiliar', label: 'Auxiliar' },
+        { key: 'nombre_nucleo', label: 'Núcleo' },
+        { key: 'nombre_distrito', label: 'Distrito' },
+        { key: 'nombre_direccion_administrativa', label: 'Dirección Administrativa' },
+        { key: 'nombre_ciudad', label: 'Ciudad' },
+
+        { key: 'codigo_311', label: 'Código' },
+        { key: 'estado_activo', label: 'Estado del Activo' },
+        { key: 'descripcion_edificio', label: 'Descripción' },
+        { key: 'ingreso_311', label: 'Tipo de Ingreso' },
+        { key: 'ingreso_des_311', label: 'Descripción del Ingreso' },
+        { key: 'fecha_alta_311', label: 'Fecha de Alta' },
+
+        { key: 'clasificacion_311_1', label: 'Clasificación' },
+        { key: 'uso_311_1', label: 'Uso' },
+        { key: 'superficie_311_1', label: 'Superficie (m²)' },
+
+        // Servicios básicos
+        { key: 'energia_electrica', label: 'Energía Eléctrica' },
+        { key: 'gas_domiciliario', label: 'Gas Domiciliario' },
+        { key: 'alcantarillado', label: 'Alcantarillado' },
+        { key: 'agua', label: 'Agua' },
+        { key: 'telefono', label: 'Teléfono' },
+        { key: 'celular', label: 'Celular' },
+        { key: 'internet', label: 'Internet' },
+
+        { key: 'observaciones_ubi', label: 'Observaciones Técnicas' },
+    ];
+
 
     return (
         <div className="container mt-4">
@@ -259,12 +321,13 @@ const ListaEdificios = () => {
                             </div>
                             <div className="modal-body">
                                 <div className="row">
-                                    {Object.entries(edificioSeleccionado).map(([key, value]) => (
+                                    {camposVisibles.map(({ key, label }) => (
                                         <div className="col-md-6 mb-2" key={key}>
-                                            <strong>{String(key)}:</strong><br />
-                                            <span>{String(value)}</span>
+                                            <strong>{label}:</strong><br />
+                                            <span>{(edificioSeleccionado as any)[key] ?? '—'}</span>
                                         </div>
                                     ))}
+
                                 </div>
                             </div>
                             <div className="modal-footer">

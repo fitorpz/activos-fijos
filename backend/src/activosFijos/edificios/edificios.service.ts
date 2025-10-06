@@ -13,6 +13,15 @@ import { UnidadOrganizacional } from '../../parametros/unidades-organizacionales
 import { Ambiente } from '../../parametros/ambientes/entities/ambiente.entity';
 
 
+import { Cargo } from '../../parametros/cargos/entities/cargos.entity';
+import { Auxiliar } from '../../parametros/auxiliares/entities/auxiliares.entity';
+import { Nucleo } from '../../parametros/nucleos/entities/nucleos.entity';
+import { Distrito } from '../../parametros/distritos/entities/distritos.entity';
+import { DireccionAdministrativa } from '../../parametros/direcciones-administrativas/entities/direcciones-administrativas.entity';
+import { Ciudad } from '../../parametros/ciudades/entities/ciudades.entity';
+
+
+
 
 @Injectable()
 export class EdificiosService {
@@ -28,6 +37,25 @@ export class EdificiosService {
 
         @InjectRepository(Ambiente)
         private readonly ambienteRepository: Repository<Ambiente>,
+
+        @InjectRepository(Cargo)
+        private readonly cargoRepository: Repository<Cargo>,
+
+        @InjectRepository(Auxiliar)
+        private readonly auxiliarRepository: Repository<Auxiliar>,
+
+        @InjectRepository(Nucleo)
+        private readonly nucleoRepository: Repository<Nucleo>,
+
+        @InjectRepository(Distrito)
+        private readonly distritoRepository: Repository<Distrito>,
+
+        @InjectRepository(DireccionAdministrativa)
+        private readonly direccionAdministrativaRepository: Repository<DireccionAdministrativa>,
+
+        @InjectRepository(Ciudad)
+        private readonly ciudadRepository: Repository<Ciudad>,
+
     ) { }
 
     // ✅ Crear nuevo edificio con trazabilidad
@@ -68,6 +96,45 @@ export class EdificiosService {
             const ambiente = await this.ambienteRepository.findOne({ where: { id: dto.ambiente_id } });
             nuevo.ambiente_nombre = ambiente?.descripcion?.toUpperCase() || '-';
         }
+
+        // Cargo
+        if (dto.cargo_id) {
+            const cargo = await this.cargoRepository.findOne({ where: { id: dto.cargo_id } });
+            nuevo.nombre_cargo = cargo?.cargo?.toUpperCase() || '-'; // ← aquí el cambio
+        }
+
+
+        // Auxiliar
+        if (dto.auxiliar_id) {
+            const auxiliar = await this.auxiliarRepository.findOne({ where: { id: dto.auxiliar_id } });
+            nuevo.nombre_auxiliar = auxiliar?.descripcion?.toUpperCase() || '-';
+        }
+
+        // Núcleo
+        if (dto.nucleo_id) {
+            const nucleo = await this.nucleoRepository.findOne({ where: { id: dto.nucleo_id } });
+            nuevo.nombre_nucleo = nucleo?.descripcion?.toUpperCase() || '-';
+        }
+
+        // Distrito
+        if (dto.distrito_id) {
+            const distrito = await this.distritoRepository.findOne({ where: { id: dto.distrito_id } });
+            nuevo.nombre_distrito = distrito?.descripcion?.toUpperCase() || '-';
+        }
+
+        // Dirección Administrativa
+        if (dto.direccion_administrativa_id) {
+            const direccion = await this.direccionAdministrativaRepository.findOne({ where: { id: dto.direccion_administrativa_id } });
+            nuevo.nombre_direccion_administrativa = direccion?.descripcion?.toUpperCase() || '-';
+
+        }
+
+        // Ciudad
+        if (dto.ciudad_id) {
+            const ciudad = await this.ciudadRepository.findOne({ where: { id: dto.ciudad_id } });
+            nuevo.nombre_ciudad = ciudad?.descripcion?.toUpperCase() || '-';
+        }
+
 
         return await this.edificioRepository.save(nuevo);
     }

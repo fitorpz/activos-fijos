@@ -1,8 +1,15 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import 'bootstrap-icons/font/bootstrap-icons.css';
+import '../styles/colors.css';
+import '../styles/layout.css';
+import { useState } from 'react';
+import logo from '../assets/img/escudo.png'
+
 
 const Layout = () => {
     const navigate = useNavigate();
+    const [expanded, setExpanded] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
 
     const handleLogout = () => {
         localStorage.removeItem('auth');
@@ -10,130 +17,101 @@ const Layout = () => {
     };
 
     return (
-        <>
-            {/* Menú superior */}
-            <nav className="navbar navbar-expand-lg navbar-dark bg-dark px-4">
-                <a className="navbar-brand fw-bold text-warning" href="/dashboard">
-                    Sistema de Activos Fijos
-                </a>
+        <div className="vscode-layout">
+            {/* === Sidebar === */}
+            <aside
+                className={`vscode-sidebar ${expanded ? 'expanded' : ''} ${mobileOpen ? 'mobile-open' : ''}`}
+                onMouseEnter={() => window.innerWidth > 768 && setExpanded(true)}
+                onMouseLeave={() => window.innerWidth > 768 && setExpanded(false)}
+            >
+                <div className="sidebar-top">
+                    <div
+                        className="d-flex justify-content-center align-items-center mb-4"
+                        style={{ width: '100%' }}
+                    >
+                        <img
+                            src={logo}
+                            alt="Logo GAMS"
+                            style={{
+                                maxWidth: '50%',
+                                height: 'auto',
+                                objectFit: 'contain',
+                            }}
+                        />
+                    </div>
+                </div>
 
-                <button
-                    className="navbar-toggler"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#navbarSupportedContent"
-                    aria-controls="navbarSupportedContent"
-                    aria-expanded="false"
-                    aria-label="Toggle navigation"
-                >
-                    <span className="navbar-toggler-icon"></span>
-                </button>
+                <ul className="sidebar-menu">
 
-                <div className="collapse navbar-collapse" id="navbarSupportedContent">
-                    <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-                        <li className="nav-item">
-                            <a className="nav-link" href="/parametros">
-                                <i className="bi bi-gear-fill"></i> Parámetros
-                            </a>
-                        </li>
-
-                        <li className="nav-item">
-                            <a className="nav-link" href="/dashboard">
-                                <i className="bi bi-box-seam"></i> Activos Fijos
-                            </a>
-                        </li>
-                        {/* Contenido comentado para futuras implementaciones
-                        <li className="nav-item dropdown">
-                            <a
-                                className="nav-link dropdown-toggle"
-                                href="#"
-                                id="clasificadorDropdown"
-                                role="button"
-                                data-bs-toggle="dropdown"
-                                aria-expanded="false"
-                            >
-                                <i className="bi bi-journals"></i> Clasificador
-                            </a>
-                            <ul className="dropdown-menu" aria-labelledby="clasificadorDropdown">
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-building me-2"></i> Edificios</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-lamp me-2"></i> Oficina y Muebles</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-gear-wide-connected me-2"></i> Producción</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-truck me-2"></i> Transporte, Tracción y Elevación</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-heart-pulse me-2"></i> Médico y Laboratorio</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-wifi me-2"></i> Comunicación</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-joystick me-2"></i> Educacional y Recreativo</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-tools me-2"></i> Otra Maquinaria y Equipo</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-map me-2"></i> Tierras y Terrenos</a></li>
-                                <li><hr className="dropdown-divider" /></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-box-fill me-2"></i> Fungibles</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-shield-lock me-2"></i> Otros Activos de Control</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-tools me-2"></i> Accesorios / Repuestos de Equipo</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-car-front-fill me-2"></i> Repuestos de Vehículos</a></li>
-                            </ul>
-                        </li>
-
-                        <li className="nav-item dropdown">
-                            <a
-                                className="nav-link dropdown-toggle"
-                                href="#"
-                                id="contableDropdown"
-                                role="button"
-                                data-bs-toggle="dropdown"
-                                aria-expanded="false"
-                            >
-                                <i className="bi bi-folder2-open"></i> Contable
-                            </a>
-                            <ul className="dropdown-menu" aria-labelledby="contableDropdown">
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-building me-2"></i> Edificios</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-lamp me-2"></i> Oficina y Muebles</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-gear-wide-connected me-2"></i> Producción</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-truck me-2"></i> Transporte</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-heart-pulse me-2"></i> Médico y Laboratorio</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-wifi me-2"></i> Comunicación</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-joystick me-2"></i> Educacional y Recreativo</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-tools me-2"></i> Otra Maquinaria</a></li>
-                                <li><a className="dropdown-item" href="#"><i className="bi bi-map me-2"></i> Tierras y Terrenos</a></li>
-                                <li><hr className="dropdown-divider" /></li>
-                                <li>
-                                    <a className="dropdown-item fw-bold text-warning" href="#">
-                                        <i className="bi bi-graph-up-arrow me-2"></i> Balance Activos Fijos
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <li className="nav-item">
-                            <a className="nav-link" href="/panel-control">
-                                <i className="bi bi-grid"></i> Panel de Control
-                            </a>
-                        </li>
-                        */}
-                        <li className="nav-item">
-                            <a className="nav-link" href="/tickets/imprimir">
-                                <i className="bi bi-printer-fill"></i> Imprimir Tickets
-                            </a>
-                        </li>
+                    <li>
+                        <a href="/parametros">
+                            <i className="bi bi-gear-fill"></i>
+                            <span>Parámetros</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/dashboard">
+                            <i className="bi bi-speedometer2"></i>
+                            <span>Activos Fijos</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/tickets/imprimir">
+                            <i className="bi bi-printer-fill"></i>
+                            <span>Tickets</span>
+                        </a>
+                    </li>
+                    <li className="nav-item dropdown">
+                        <a className="nav-link dropdown-toggle" href="#" id="usuariosDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i className="bi bi-people-fill"></i>
+                            <span>Usuarios</span>
+                        </a>
+                        <ul className="dropdown-menu" aria-labelledby="usuariosDropdown">
+                            <li>
+                                <a className="dropdown-item" href="/usuarios">
+                                    <i className="bi bi-person-lines-fill me-2"></i>
+                                    Gestión de Usuarios
+                                </a>
+                            </li>
+                            <li>
+                                <a className="dropdown-item" href="/usuarios/roles">
+                                    <i className="bi bi-shield-lock-fill me-2"></i>
+                                    Roles
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
 
 
-                        <li className="nav-item">
-                            <a className="nav-link" href="/usuarios">
-                                <i className="bi bi-people-fill"></i> Gestión de Usuarios
-                            </a>
-                        </li>
+                </ul>
 
-                    </ul>
-
-                    <button className="btn btn-outline-light btn-sm" onClick={handleLogout}>
-                        <i className="bi bi-box-arrow-right"></i> Cerrar Sesión
+                <div className="sidebar-bottom">
+                    <button onClick={handleLogout}>
+                        <i className="bi bi-box-arrow-right"></i>
+                        <span>Cerrar Sesión</span>
                     </button>
                 </div>
-            </nav>
+            </aside>
 
-            {/* Contenido de cada página */}
-            <div className="container mt-4">
-                <Outlet />
-            </div>
-        </>
+            {/* === Overlay en móvil === */}
+            {mobileOpen && <div className="overlay" onClick={() => setMobileOpen(false)}></div>}
+
+            {/* === Contenido === */}
+            <main className="vscode-content">
+                <header className="vscode-topbar">
+                    <button
+                        className="toggle-btn"
+                        onClick={() => setMobileOpen(!mobileOpen)}
+                    >
+                        <i className="bi bi-list"></i>
+                    </button>
+                    <h5 className="mb-0">Sistema de Activos Fijos</h5>
+                </header>
+                <div className="page-content">
+                    <Outlet />
+                </div>
+            </main>
+        </div>
     );
 };
 

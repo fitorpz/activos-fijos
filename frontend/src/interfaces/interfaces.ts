@@ -132,7 +132,7 @@ export interface FormDataEdificio {
   direccion_administrativa: string;
   estado_activo: string;
 
-   clasificacion_311_1: string;
+  clasificacion_311_1: string;
   uso_311_1: string;
   superficie_311_1: string;
 
@@ -160,7 +160,32 @@ export interface Ciudad {
 }
 
 export interface Distrito {
-    id: number;
-    codigo: string;
-    descripcion: string;
+  id: number;
+  codigo: string;
+  descripcion: string;
 }
+
+// Interfaz para los permisos (puedes expandirla)
+export interface Permiso {
+  id: number;
+  nombre: string;
+  // otros campos si tu backend los retorna...
+}
+
+// Interfaz para los roles
+export interface Rol {
+    id: number;
+    nombre: string;
+    slug: string;
+    descripcion?: string;
+    permisos: Permiso[];
+}
+
+
+export interface Permiso {
+    id: number;
+    nombre: string;
+    descripcion?: string;
+}
+
+
