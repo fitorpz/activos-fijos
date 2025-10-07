@@ -16,15 +16,17 @@ const ListaRoles: React.FC = () => {
                 if (!token) throw new Error('Token no encontrado');
 
                 const res = await listarRoles(token);
-                console.log('Roles:', res.data.data);
-            } catch (error) {
-                alert('Error al cargar roles');
+                setRoles(res.data.data || []);
+            } catch (err: any) {
+                console.error('Error al cargar roles:', err);
+                setError('Error al cargar roles');
+            } finally {
+                setLoading(false); // ← Esto evita que se quede en "Cargando..."
             }
         };
 
         cargarRoles();
     }, []);
-
 
     return (
         <div className="container mt-4">
@@ -48,7 +50,7 @@ const ListaRoles: React.FC = () => {
             {!loading && roles.length > 0 && (
                 <div className="table-responsive">
                     <table className="table table-striped">
-                        <thead>
+                        <thead className="table-dark">
                             <tr>
                                 <th>Nombre</th>
                                 <th>Descripción</th>
