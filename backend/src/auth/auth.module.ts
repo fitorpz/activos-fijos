@@ -10,6 +10,8 @@ import { jwtConstants } from './jwt.constants';
 
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { UserLogModule } from '../user-log/user-log.module';
+import { PermisosGuard } from './guards/permisos.guard';
+
 // ⚠️ Si NO usas UsuariosService dentro de AuthService, no importes UsuariosModule
 // para evitar dependencias circulares innecesarias.
 // import { UsuariosModule } from '../usuarios/usuarios.module';
@@ -26,7 +28,7 @@ import { UserLogModule } from '../user-log/user-log.module';
     // UsuariosModule, // solo si realmente necesitas UsuariosService aquí
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, PermisosGuard],
   exports: [AuthService],
 })
 export class AuthModule {}

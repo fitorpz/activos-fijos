@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
+import { obtenerPermisosUsuario } from '../../../utils/permisos'; // ✅ Importa para verificar permisos
 
 export interface Usuario {
     id: number;
@@ -34,30 +35,37 @@ const Auxiliares = () => {
     const [codigoGrupoFiltro, setCodigoGrupoFiltro] = useState<string>('');
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
     const [cargando, setCargando] = useState(true);
+    const [auxiliaresFiltrados, setAuxiliaresFiltrados] = useState<Auxiliar[]>([]);
     const navigate = useNavigate();
+
+    // Filtros
     const [filtroCodigo, setFiltroCodigo] = useState('');
     const [filtroDescripcion, setFiltroDescripcion] = useState('');
     const [filtroCodigoGrupo, setFiltroCodigoGrupo] = useState('');
     const [filtroEstado, setFiltroEstado] = useState<'TODOS' | 'ACTIVO' | 'INACTIVO'>('TODOS');
     const [filtroCreadoPor, setFiltroCreadoPor] = useState('');
     const [filtroActualizadoPor, setFiltroActualizadoPor] = useState('');
-    const [auxiliaresFiltrados, setAuxiliaresFiltrados] = useState<Auxiliar[]>([]);
+
+    // ✅ Permisos del usuario logueado
+    const [permisos, setPermisos] = useState<string[]>([]);
 
     useEffect(() => {
-        obtenerGruposContables();
+        const permisosUsuario = obtenerPermisosUsuario();
+        setPermisos(permisosUsuario);
     }, []);
 
     useEffect(() => {
-        obtenerAuxiliares();
-    }, []);
+        if (permisos.includes('auxiliares:listar')) {
+            obtenerGruposContables();
+            obtenerAuxiliares();
+        } else {
+            setCargando(false);
+        }
+    }, [estadoFiltro, codigoGrupoFiltro, permisos]);
 
     useEffect(() => {
         aplicarFiltros();
     }, [auxiliares, filtroCodigo, filtroDescripcion, filtroCodigoGrupo, filtroEstado, filtroCreadoPor, filtroActualizadoPor]);
-
-    useEffect(() => {
-        obtenerAuxiliares();
-    }, [estadoFiltro, codigoGrupoFiltro]);
 
     const obtenerGruposContables = async () => {
         const token = localStorage.getItem('token');
@@ -100,38 +108,14 @@ const Auxiliares = () => {
     const aplicarFiltros = () => {
         let resultado = [...auxiliares];
 
-        if (filtroEstado !== 'TODOS') {
-            resultado = resultado.filter((a) => a.estado === filtroEstado);
-        }
-        if (filtroCodigo.trim() !== '') {
-            resultado = resultado.filter((a) =>
-                a.codigo.toLowerCase().includes(filtroCodigo.toLowerCase())
-            );
-        }
-        if (filtroDescripcion.trim() !== '') {
-            resultado = resultado.filter((a) =>
-                a.descripcion.toLowerCase().includes(filtroDescripcion.toLowerCase())
-            );
-        }
-        if (filtroCodigoGrupo.trim() !== '') {
-            resultado = resultado.filter((a) =>
-                a.codigo_grupo.toLowerCase().includes(filtroCodigoGrupo.toLowerCase())
-            );
-        }
-        if (filtroCreadoPor.trim() !== '') {
-            resultado = resultado.filter((a) =>
-                a.creado_por?.nombre.toLowerCase().includes(filtroCreadoPor.toLowerCase())
-            );
-        }
-        if (filtroActualizadoPor.trim() !== '') {
-            resultado = resultado.filter((a) =>
-                a.actualizado_por?.nombre?.toLowerCase().includes(filtroActualizadoPor.toLowerCase())
-            );
-        }
+        if (filtroEstado !== 'TODOS') resultado = resultado.filter((a) => a.estado === filtroEstado);
+        if (filtroCodigo.trim() !== '') resultado = resultado.filter((a) => a.codigo.toLowerCase().includes(filtroCodigo.toLowerCase()));
+        if (filtroDescripcion.trim() !== '') resultado = resultado.filter((a) => a.descripcion.toLowerCase().includes(filtroDescripcion.toLowerCase()));
+        if (filtroCodigoGrupo.trim() !== '') resultado = resultado.filter((a) => a.codigo_grupo.toLowerCase().includes(filtroCodigoGrupo.toLowerCase()));
+        if (filtroCreadoPor.trim() !== '') resultado = resultado.filter((a) => a.creado_por?.nombre.toLowerCase().includes(filtroCreadoPor.toLowerCase()));
+        if (filtroActualizadoPor.trim() !== '') resultado = resultado.filter((a) => a.actualizado_por?.nombre?.toLowerCase().includes(filtroActualizadoPor.toLowerCase()));
 
-        // Ordenar por código
         resultado.sort((a, b) => a.codigo.localeCompare(b.codigo));
-
         setAuxiliaresFiltrados(resultado);
     };
 
@@ -160,13 +144,8 @@ const Auxiliares = () => {
         try {
             const response = await axios.get(
                 `/parametros/auxiliares/exportar/pdf?estado=${estadoSeleccionado}&codigo_grupo=${codigoGrupoFiltro}`,
-                {
-                    responseType: 'blob',
-                    headers: { Authorization: `Bearer ${token}` },
-                }
+                { responseType: 'blob', headers: { Authorization: `Bearer ${token}` } }
             );
-
-
             const blob = new Blob([response.data as Blob], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
             window.open(url, '_blank');
@@ -175,6 +154,19 @@ const Auxiliares = () => {
             alert('Ocurrió un error al exportar el PDF.');
         }
     };
+
+    // 🔒 Si no tiene permiso para listar, mostrar acceso denegado
+    if (!permisos.includes('auxiliares:listar')) {
+        return (
+            <div className="container mt-5 text-center">
+                <h4 className="text-danger">
+                    <i className="bi bi-shield-lock-fill me-2"></i>
+                    Acceso denegado
+                </h4>
+                <p>No tienes permiso para ver los auxiliares.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="container mt-4">
@@ -185,22 +177,26 @@ const Auxiliares = () => {
                 </div>
 
                 <div className="d-flex flex-wrap align-items-center gap-2">
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => navigate('/parametros/auxiliares/registrar')}
-                    >
-                        <i className="bi bi-plus-lg me-1"></i> Nuevo Auxiliar
-                    </button>
+                    {permisos.includes('auxiliares:crear') && (
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => navigate('/parametros/auxiliares/registrar')}
+                        >
+                            <i className="bi bi-plus-lg me-1"></i> Nuevo Auxiliar
+                        </button>
+                    )}
 
-                    <button className="btn btn-outline-success" onClick={exportarPDF}>
-                        <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
-                    </button>
+                    {permisos.includes('auxiliares:exportar-pdf') && (
+                        <button className="btn btn-outline-success" onClick={exportarPDF}>
+                            <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                        </button>
+                    )}
 
                     <button
                         className="btn btn-outline-secondary"
                         onClick={() => navigate('/parametros')}
                     >
-                        <i className="bi bi-arrow-left me-1"></i> Volver a Parámetros
+                        <i className="bi bi-arrow-left me-1"></i> Volver
                     </button>
 
                     <div style={{ minWidth: '160px' }}>
@@ -223,7 +219,7 @@ const Auxiliares = () => {
                             onChange={(e) => setCodigoGrupoFiltro(e.target.value)}
                         >
                             <option value="">Todos los Grupos</option>
-                            {gruposContables.map(grupo => (
+                            {gruposContables.map((grupo) => (
                                 <option key={grupo.id} value={grupo.codigo}>
                                     {grupo.codigo} - {grupo.descripcion}
                                 </option>
@@ -248,75 +244,6 @@ const Auxiliares = () => {
                             <th>Fecha de Actualización</th>
                             <th>Acciones</th>
                         </tr>
-                        <tr>
-                            <th></th>
-                            <th>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    placeholder="Filtrar código"
-                                    value={filtroCodigo}
-                                    onChange={(e) => setFiltroCodigo(e.target.value)}
-                                />
-                            </th>
-                            <th>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    placeholder="Filtrar descripción"
-                                    value={filtroDescripcion}
-                                    onChange={(e) => setFiltroDescripcion(e.target.value)}
-                                />
-                            </th>
-                            <th>
-                                <select
-                                    className="form-select form-select-sm"
-                                    value={filtroCodigoGrupo}
-                                    onChange={(e) => setFiltroCodigoGrupo(e.target.value)}
-                                >
-                                    <option value="">Todos los Grupos</option>
-                                    {gruposContables.map((grupo) => (
-                                        <option key={grupo.id} value={grupo.codigo}>
-                                            {grupo.codigo} - {grupo.descripcion}
-                                        </option>
-                                    ))}
-                                </select>
-                            </th>
-                            <th>
-                                <select
-                                    className="form-select form-select-sm"
-                                    value={filtroEstado}
-                                    onChange={(e) =>
-                                        setFiltroEstado(e.target.value as 'TODOS' | 'ACTIVO' | 'INACTIVO')
-                                    }
-                                >
-                                    <option value="TODOS">Todos</option>
-                                    <option value="ACTIVO">Activo</option>
-                                    <option value="INACTIVO">Inactivo</option>
-                                </select>
-                            </th>
-                            <th>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    placeholder="Filtrar creado por"
-                                    value={filtroCreadoPor}
-                                    onChange={(e) => setFiltroCreadoPor(e.target.value)}
-                                />
-                            </th>
-                            <th></th>
-                            <th>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    placeholder="Filtrar actualizado por"
-                                    value={filtroActualizadoPor}
-                                    onChange={(e) => setFiltroActualizadoPor(e.target.value)}
-                                />
-                            </th>
-                            <th></th>
-                            <th></th>
-                        </tr>
                     </thead>
                     <tbody>
                         {cargando ? (
@@ -331,36 +258,30 @@ const Auxiliares = () => {
                                     <td>{aux.descripcion}</td>
                                     <td>{aux.codigo_grupo || '—'}</td>
                                     <td>{aux.estado}</td>
-                                    <td>
-                                        {aux.creado_por
-                                            ? `${aux.creado_por.nombre}${aux.creado_por.rol ? ` (${aux.creado_por.rol})` : ''}`
-                                            : '—'}
-                                    </td>
+                                    <td>{aux.creado_por?.nombre || '—'}</td>
                                     <td>{new Date(aux.created_at).toLocaleDateString('es-BO')}</td>
+                                    <td>{aux.actualizado_por?.nombre || '—'}</td>
+                                    <td>{aux.updated_at ? new Date(aux.updated_at).toLocaleDateString('es-BO') : '—'}</td>
                                     <td>
-                                        {aux.actualizado_por
-                                            ? `${aux.actualizado_por.nombre}${aux.actualizado_por.rol ? ` (${aux.actualizado_por.rol})` : ''}`
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        {aux.updated_at
-                                            ? new Date(aux.updated_at).toLocaleDateString('es-BO')
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        <button
-                                            className="btn btn-sm btn-warning me-2"
-                                            onClick={() => navigate(`/parametros/auxiliares/editar/${aux.id}`)}
-                                        >
-                                            <i className="bi bi-pencil-square"></i>
-                                        </button>
-                                        <button
-                                            className={`btn btn-sm ${aux.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
-                                            title={aux.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
-                                            onClick={() => cambiarEstado(aux.id)}
-                                        >
-                                            <i className="bi bi-arrow-repeat"></i>
-                                        </button>
+                                        {permisos.includes('auxiliares:editar') && (
+                                            <button
+                                                className="btn btn-sm btn-warning me-2"
+                                                onClick={() => navigate(`/parametros/auxiliares/editar/${aux.id}`)}
+                                            >
+                                                <i className="bi bi-pencil-square"></i>
+                                            </button>
+                                        )}
+
+                                        {(permisos.includes('auxiliares:cambiar-estado') ||
+                                            permisos.includes('auxiliares:eliminar')) && (
+                                                <button
+                                                    className={`btn btn-sm ${aux.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
+                                                    title={aux.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
+                                                    onClick={() => cambiarEstado(aux.id)}
+                                                >
+                                                    <i className="bi bi-arrow-repeat"></i>
+                                                </button>
+                                            )}
                                     </td>
                                 </tr>
                             ))

@@ -18,6 +18,7 @@ import { NucleosModule } from './parametros/nucleos/nucleos.module';
 import { CiudadesModule } from './parametros/ciudades/ciudades.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { DistritosModule } from './parametros/distritos/distritos.module';
+import { DatabaseModule } from './database/database.module';
 
 
 
@@ -40,23 +41,24 @@ import { DistritosModule } from './parametros/distritos/distritos.module';
       dropSchema: false,       // ⚠️ elimina todo y lo recrea — solo para desarrollo local
       autoLoadEntities: true, // ✔ carga automáticamente todas las entidades registradas en cada módulo
     }),
-  
-   /* TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_DATABASE,
 
-      synchronize: true,
-      dropSchema: false,
-      autoLoadEntities: true,
-    }),
-*/
+    /* TypeOrmModule.forRoot({
+       type: 'postgres',
+       host: process.env.DB_HOST,
+       port: parseInt(process.env.DB_PORT || '5432', 10),
+       username: process.env.DB_USERNAME,
+       password: process.env.DB_PASSWORD,
+       database: process.env.DB_DATABASE,
+ 
+       synchronize: true,
+       dropSchema: false,
+       autoLoadEntities: true,
+     }),
+ */
     UsuariosModule,
     UserLogModule,
     AuthModule,
+    DatabaseModule,
     EdificiosModule,
     UfvsModule,
     EquipoOficinaModule,
@@ -73,5 +75,6 @@ import { DistritosModule } from './parametros/distritos/distritos.module';
     CiudadesModule,
     TicketsModule,
   ],
+  
 })
 export class AppModule { }

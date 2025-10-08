@@ -174,18 +174,19 @@ export interface Permiso {
 
 // Interfaz para los roles
 export interface Rol {
-    id: number;
-    nombre: string;
-    slug: string;
-    descripcion?: string;
-    permisos: Permiso[];
+  id: number;
+  nombre: string;
+  slug: string;
+  descripcion?: string;
+  permisos: Permiso[];
 }
 
 
 export interface Permiso {
-    id: number;
-    nombre: string;
-    descripcion?: string;
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  modulo?: string;
 }
 
 

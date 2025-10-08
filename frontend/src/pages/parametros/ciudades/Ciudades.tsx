@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
+import { obtenerPermisosUsuario } from '../../../utils/permisos'; // ✅ Importar permisos
 
 interface Usuario {
     id: number;
@@ -24,15 +25,28 @@ const Ciudades = () => {
     const [ciudades, setCiudades] = useState<Ciudad[]>([]);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
     const [cargando, setCargando] = useState(true);
+    const [permisos, setPermisos] = useState<string[]>([]);
     const navigate = useNavigate();
 
+    // ✅ Cargar permisos del usuario
     useEffect(() => {
-        obtenerCiudades();
-    }, [estadoFiltro]);
+        const permisosUsuario = obtenerPermisosUsuario();
+        setPermisos(permisosUsuario);
+    }, []);
+
+    // ✅ Obtener ciudades solo si tiene permiso
+    useEffect(() => {
+        if (permisos.includes('ciudades:listar')) {
+            obtenerCiudades();
+        } else {
+            setCargando(false);
+        }
+    }, [estadoFiltro, permisos]);
 
     const obtenerCiudades = async () => {
         setCargando(true);
         try {
+            const token = localStorage.getItem('token');
             const res = await axios.get<Ciudad[]>('/parametros/ciudades', {
                 params: {
                     estado:
@@ -42,6 +56,7 @@ const Ciudades = () => {
                                 ? 'INACTIVO'
                                 : 'todos',
                 },
+                headers: { Authorization: `Bearer ${token}` },
             });
             setCiudades(res.data);
         } catch (error) {
@@ -54,7 +69,10 @@ const Ciudades = () => {
     const cambiarEstado = async (id: number) => {
         if (!window.confirm('¿Estás seguro de cambiar el estado de esta ciudad?')) return;
         try {
-            await axios.put(`/parametros/ciudades/${id}/cambiar-estado`);
+            const token = localStorage.getItem('token');
+            await axios.put(`/parametros/ciudades/${id}/cambiar-estado`, null, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             obtenerCiudades();
         } catch (error) {
             console.error('❌ Error al cambiar estado:', error);
@@ -62,10 +80,12 @@ const Ciudades = () => {
     };
 
     const exportarPDF = async () => {
+        const token = localStorage.getItem('token');
         const estado = estadoFiltro === 'activos' ? 'ACTIVO' : estadoFiltro === 'inactivos' ? 'INACTIVO' : 'todos';
         try {
             const res = await axios.get<Blob>(`/parametros/ciudades/exportar/pdf?estado=${estado}`, {
                 responseType: 'blob',
+                headers: { Authorization: `Bearer ${token}` },
             });
             const blob = new Blob([res.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
@@ -74,6 +94,18 @@ const Ciudades = () => {
             console.error('❌ Error al exportar PDF:', error);
         }
     };
+
+    // 🔒 Si no tiene permiso para listar
+    if (!permisos.includes('ciudades:listar')) {
+        return (
+            <div className="container mt-5 text-center">
+                <h4 className="text-danger">
+                    <i className="bi bi-shield-lock-fill me-2"></i> Acceso denegado
+                </h4>
+                <p>No tienes permiso para ver las ciudades.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="container mt-4">
@@ -84,16 +116,20 @@ const Ciudades = () => {
                 </div>
 
                 <div className="d-flex flex-wrap align-items-center gap-2">
-                    <button className="btn btn-primary" onClick={() => navigate('/parametros/ciudades/nuevo')}>
-                        <i className="bi bi-plus-lg me-1"></i> Nueva Ciudad
-                    </button>
+                    {permisos.includes('ciudades:crear') && (
+                        <button className="btn btn-primary" onClick={() => navigate('/parametros/ciudades/nuevo')}>
+                            <i className="bi bi-plus-lg me-1"></i> Nueva Ciudad
+                        </button>
+                    )}
 
-                    <button className="btn btn-outline-success" onClick={exportarPDF}>
-                        <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
-                    </button>
+                    {permisos.includes('ciudades:exportar-pdf') && (
+                        <button className="btn btn-outline-success" onClick={exportarPDF}>
+                            <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                        </button>
+                    )}
 
                     <button className="btn btn-outline-secondary" onClick={() => navigate('/parametros')}>
-                        <i className="bi bi-arrow-left me-1"></i> Volver a Parametros
+                        <i className="bi bi-arrow-left me-1"></i> Volver a Parámetros
                     </button>
 
                     <div style={{ minWidth: '160px' }}>
@@ -142,19 +178,25 @@ const Ciudades = () => {
                                     <td>{ciudad.actualizado_por?.nombre || '—'}</td>
                                     <td>{ciudad.updated_at ? new Date(ciudad.updated_at).toLocaleDateString('es-BO') : '—'}</td>
                                     <td>
-                                        <button
-                                            className="btn btn-sm btn-warning me-2"
-                                            onClick={() => navigate(`/parametros/ciudades/editar/${ciudad.id}`)}
-                                        >
-                                            <i className="bi bi-pencil-square"></i>
-                                        </button>
-                                        <button
-                                            className={`btn btn-sm ${ciudad.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
-                                            onClick={() => cambiarEstado(ciudad.id)}
-                                            title={ciudad.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
-                                        >
-                                            <i className="bi bi-arrow-repeat"></i>
-                                        </button>
+                                        {permisos.includes('ciudades:editar') && (
+                                            <button
+                                                className="btn btn-sm btn-warning me-2"
+                                                onClick={() => navigate(`/parametros/ciudades/editar/${ciudad.id}`)}
+                                            >
+                                                <i className="bi bi-pencil-square"></i>
+                                            </button>
+                                        )}
+
+                                        {(permisos.includes('ciudades:cambiar-estado') ||
+                                            permisos.includes('ciudades:eliminar')) && (
+                                                <button
+                                                    className={`btn btn-sm ${ciudad.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
+                                                    onClick={() => cambiarEstado(ciudad.id)}
+                                                    title={ciudad.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
+                                                >
+                                                    <i className="bi bi-arrow-repeat"></i>
+                                                </button>
+                                            )}
                                     </td>
                                 </tr>
                             ))

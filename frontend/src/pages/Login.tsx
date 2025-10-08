@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import logo from '../assets/img/logo_gamsucre_negro.png'
+import { refrescarPermisosUsuario } from '../utils/permisos';
 
 const Login = () => {
     const [correo, setCorreo] = useState('');
@@ -41,10 +42,15 @@ const Login = () => {
                 return;
             }
 
+            // ✅ Guardar token y datos del usuario en localStorage
             localStorage.setItem('token', data.access_token);
             localStorage.setItem('usuario', JSON.stringify(data.usuario));
-            window.location.href = '/parametros';
 
+            // 🔄 Refrescar los permisos desde el backend (ruta: /usuarios/permisos/actualizados)
+            await refrescarPermisosUsuario();
+
+            // ✅ Redirigir al usuario (por ejemplo, al módulo de parámetros)
+            window.location.href = '/parametros';
         } catch (error) {
             console.error('Error en login:', error);
             setErrores(['Error al conectar con el servidor.']);

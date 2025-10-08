@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { Usuario } from 'src/usuarios/entities/usuario.entity';
 
-@Entity('auxiliares') // ✅ nombre en minúscula
+@Entity('auxiliares') 
 export class Auxiliar {
   @PrimaryGeneratedColumn()
   id: number;
@@ -20,7 +20,7 @@ export class Auxiliar {
   @Column()
   descripcion: string;
 
-  @Column({ type: 'enum', enum: ['ACTIVO', 'INACTIVO'], default: 'ACTIVO' }) // ✅ enum en vez de string libre
+  @Column({ type: 'enum', enum: ['ACTIVO', 'INACTIVO'], default: 'ACTIVO' })
   estado: 'ACTIVO' | 'INACTIVO';
 
   @Column({ nullable: true })

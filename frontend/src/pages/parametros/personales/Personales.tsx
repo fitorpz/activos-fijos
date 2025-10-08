@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
+import { obtenerPermisosUsuario } from '../../../utils/permisos'; // ✅ Importar sistema de permisos
 
 export interface Usuario {
     id: number;
@@ -25,9 +26,7 @@ interface Personal {
     sexo?: number;
     estado: string;
     creado_por?: { nombre: string };
-    creado_por_id: number;
     actualizado_por?: { nombre: string };
-    actualizado_por_id?: number;
     created_at: string;
     updated_at?: string;
 }
@@ -36,19 +35,29 @@ const Personales = () => {
     const [personales, setPersonales] = useState<Personal[]>([]);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
     const [cargando, setCargando] = useState(true);
+    const [permisos, setPermisos] = useState<string[]>([]); // ✅ Permisos del usuario
     const navigate = useNavigate();
 
+    // ✅ Cargar permisos del usuario
     useEffect(() => {
-        obtenerPersonales();
-    }, [estadoFiltro]);
+        const permisosUsuario = obtenerPermisosUsuario();
+        setPermisos(permisosUsuario);
+    }, []);
+
+    // ✅ Cargar datos solo si tiene permiso
+    useEffect(() => {
+        if (permisos.includes('personales:listar')) {
+            obtenerPersonales();
+        } else {
+            setCargando(false);
+        }
+    }, [estadoFiltro, permisos]);
 
     const obtenerPersonales = async () => {
         const token = localStorage.getItem('token');
         try {
             const res = await axios.get<Personal[]>('/parametros/personal', {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: { Authorization: `Bearer ${token}` },
             });
             const filtrados = res.data.filter((p) =>
                 estadoFiltro === 'todos'
@@ -89,24 +98,22 @@ const Personales = () => {
         try {
             const token = localStorage.getItem('token');
             await axios.put(`/parametros/personal/${id}/estado`, null, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: { Authorization: `Bearer ${token}` },
             });
             obtenerPersonales();
         } catch (error) {
-            console.error('Error al cambiar el estado del personal:', error);
+            console.error('Error al cambiar estado:', error);
         }
     };
 
     const exportarPDF = async () => {
+        const token = localStorage.getItem('token');
         const estado = estadoFiltro === 'activos' ? 'ACTIVO' : estadoFiltro === 'inactivos' ? 'INACTIVO' : 'todos';
-
         try {
-            const res = await axios.get(
-                `/parametros/personal/exportar/pdf?estado=${estado}`,
-                { responseType: 'blob' }
-            );
+            const res = await axios.get(`/parametros/personal/exportar/pdf?estado=${estado}`, {
+                responseType: 'blob',
+                headers: { Authorization: `Bearer ${token}` },
+            });
             const blob = new Blob([res.data as Blob], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
             window.open(url, '_blank');
@@ -115,34 +122,44 @@ const Personales = () => {
         }
     };
 
+    // 🔒 Si no tiene permiso para listar
+    if (!permisos.includes('personales:listar')) {
+        return (
+            <div className="container mt-5 text-center">
+                <h4 className="text-danger">
+                    <i className="bi bi-shield-lock-fill me-2"></i>
+                    Acceso denegado
+                </h4>
+                <p>No tienes permiso para ver los registros de personal.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="container mt-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h4 className="mb-0">Personal</h4>
-                    <p className="text-muted small">Gestión de personal registrado</p>
+                    <p className="text-muted small">Gestión de registros de personal</p>
                 </div>
 
                 <div className="d-flex flex-wrap align-items-center gap-2">
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => navigate('/parametros/personales/registrar')}
-                    >
-                        <i className="bi bi-plus-lg me-1"></i> Nuevo Personal
-                    </button>
+                    {permisos.includes('personales:crear') && (
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => navigate('/parametros/personales/registrar')}
+                        >
+                            <i className="bi bi-plus-lg me-1"></i> Nuevo Personal
+                        </button>
+                    )}
 
-                    <button
-                        className="btn btn-outline-success"
-                        onClick={exportarPDF}
-                    >
-                        <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
-                    </button>
+                    {permisos.includes('personales:exportar-pdf') && (
+                        <button className="btn btn-outline-success" onClick={exportarPDF}>
+                            <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                        </button>
+                    )}
 
-                    <button
-                        className="btn btn-outline-secondary"
-                        onClick={() => navigate('/parametros')}
-                    >
+                    <button className="btn btn-outline-secondary" onClick={() => navigate('/parametros')}>
                         <i className="bi bi-arrow-left me-1"></i> Volver a Parámetros
                     </button>
 
@@ -188,7 +205,7 @@ const Personales = () => {
                     <tbody>
                         {cargando ? (
                             <tr>
-                                <td colSpan={19} className="text-center">Cargando datos...</td>
+                                <td colSpan={19} className="text-center">Cargando...</td>
                             </tr>
                         ) : personales.length > 0 ? (
                             personales.map((p, index) => (
@@ -212,19 +229,25 @@ const Personales = () => {
                                     <td>{p.actualizado_por?.nombre ?? '—'}</td>
                                     <td>{p.updated_at ? new Date(p.updated_at).toLocaleDateString('es-BO') : '—'}</td>
                                     <td>
-                                        <button
-                                            className="btn btn-sm btn-warning me-2"
-                                            onClick={() => navigate(`/parametros/personales/editar/${p.id}`)}
-                                        >
-                                            <i className="bi bi-pencil-square"></i>
-                                        </button>
-                                        <button
-                                            className={`btn btn-sm ${p.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
-                                            title={p.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
-                                            onClick={() => cambiarEstado(p.id)}
-                                        >
-                                            <i className="bi bi-arrow-repeat"></i>
-                                        </button>
+                                        {permisos.includes('personales:editar') && (
+                                            <button
+                                                className="btn btn-sm btn-warning me-2"
+                                                onClick={() => navigate(`/parametros/personales/editar/${p.id}`)}
+                                            >
+                                                <i className="bi bi-pencil-square"></i>
+                                            </button>
+                                        )}
+
+                                        {(permisos.includes('personales:cambiar-estado') ||
+                                            permisos.includes('personales:eliminar')) && (
+                                                <button
+                                                    className={`btn btn-sm ${p.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
+                                                    title={p.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
+                                                    onClick={() => cambiarEstado(p.id)}
+                                                >
+                                                    <i className="bi bi-arrow-repeat"></i>
+                                                </button>
+                                            )}
                                     </td>
                                 </tr>
                             ))

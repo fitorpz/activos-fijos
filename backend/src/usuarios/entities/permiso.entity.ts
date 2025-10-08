@@ -5,12 +5,12 @@ export class Permiso {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column({ unique: true })
+    @Column()
     nombre: string;
 
-    @Column()
+    @Column({ nullable: true })
     descripcion: string;
 
-    @Column()
-    modulo: string;
+    @Column({ nullable: true })
+    modulo: string; // 👈 este campo DEBE existir
 }

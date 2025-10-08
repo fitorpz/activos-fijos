@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
+import { obtenerPermisosUsuario } from '../../../utils/permisos'; // ✅ Importa permisos
 
 export interface Usuario {
     id: number;
@@ -13,43 +14,38 @@ export interface DireccionAdministrativa {
     codigo: string;
     descripcion: string;
     estado: 'ACTIVO' | 'INACTIVO';
-    creado_por: {
-        id: number;
-        nombre: string;
-        correo: string;
-        rol: string;
-    };
+    creado_por: Usuario;
     created_at: string;
-    actualizado_por?: {
-        id: number;
-        nombre: string;
-        correo: string;
-        rol: string;
-    } | null;
-    updated_at?: string;
-
+    actualizado_por?: Usuario | null;
+    updated_at?: string | null;
 }
 
 const DireccionesAdministrativas = () => {
     const [direcciones, setDirecciones] = useState<DireccionAdministrativa[]>([]);
-    const navigate = useNavigate();
+    const [direccionesFiltradas, setDireccionesFiltradas] = useState<DireccionAdministrativa[]>([]);
+    const [permisos, setPermisos] = useState<string[]>([]); // ✅ Permisos del usuario
     const [cargando, setCargando] = useState(true);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
-
     const [filtroCodigo, setFiltroCodigo] = useState('');
     const [filtroDescripcion, setFiltroDescripcion] = useState('');
     const [filtroCreadoPor, setFiltroCreadoPor] = useState('');
     const [filtroActualizadoPor, setFiltroActualizadoPor] = useState('');
-    const [direccionesFiltradas, setDireccionesFiltradas] = useState<DireccionAdministrativa[]>([]);
+    const navigate = useNavigate();
 
-
+    // ✅ Cargar permisos del usuario
     useEffect(() => {
-        obtenerDirecciones();
-    }, [estadoFiltro]);
+        const permisosUsuario = obtenerPermisosUsuario();
+        setPermisos(permisosUsuario);
+    }, []);
 
+    // ✅ Obtener direcciones solo si tiene permiso
     useEffect(() => {
-        aplicarFiltros();
-    }, [filtroCodigo, filtroDescripcion, filtroCreadoPor, filtroActualizadoPor, direcciones, estadoFiltro]);
+        if (permisos.includes('direcciones-administrativas:listar')) {
+            obtenerDirecciones();
+        } else {
+            setCargando(false);
+        }
+    }, [estadoFiltro, permisos]);
 
     const obtenerDirecciones = async () => {
         const token = localStorage.getItem('token');
@@ -67,13 +63,11 @@ const DireccionesAdministrativas = () => {
                                         : 'todos',
                         }
                         : {},
+                    headers: { Authorization: `Bearer ${token}` },
                 }
             );
-
             const ordenado = res.data.sort((a, b) => a.codigo.localeCompare(b.codigo));
-
             setDirecciones(ordenado);
-            setCargando(false);
         } catch (error) {
             console.error('Error al obtener direcciones:', error);
         } finally {
@@ -81,63 +75,42 @@ const DireccionesAdministrativas = () => {
         }
     };
 
-    const aplicarFiltros = () => {
-        let filtrado = direcciones;
+    // ✅ Aplicar filtros
+    useEffect(() => {
+        let filtrado = [...direcciones];
 
         if (estadoFiltro === 'activos') {
             filtrado = filtrado.filter(dir => dir.estado === 'ACTIVO');
         } else if (estadoFiltro === 'inactivos') {
             filtrado = filtrado.filter(dir => dir.estado === 'INACTIVO');
         }
-        // Filtrar por código (insensible a mayúsculas)
+
         if (filtroCodigo.trim() !== '') {
             filtrado = filtrado.filter(dir =>
                 dir.codigo.toLowerCase().includes(filtroCodigo.trim().toLowerCase())
             );
         }
-
-        // Filtrar por descripción
         if (filtroDescripcion.trim() !== '') {
             filtrado = filtrado.filter(dir =>
                 dir.descripcion.toLowerCase().includes(filtroDescripcion.trim().toLowerCase())
             );
         }
-
-        // Filtrar por creado por (nombre o rol)
         if (filtroCreadoPor.trim() !== '') {
             filtrado = filtrado.filter(dir =>
-                dir.creado_por.nombre.toLowerCase().includes(filtroCreadoPor.trim().toLowerCase()) ||
-                dir.creado_por.rol.toLowerCase().includes(filtroCreadoPor.trim().toLowerCase())
+                dir.creado_por?.nombre.toLowerCase().includes(filtroCreadoPor.trim().toLowerCase())
             );
         }
-
-        // Filtrar por actualizado por (nombre o rol)
         if (filtroActualizadoPor.trim() !== '') {
             filtrado = filtrado.filter(dir =>
-                dir.actualizado_por &&
-                (dir.actualizado_por.nombre.toLowerCase().includes(filtroActualizadoPor.trim().toLowerCase()) ||
-                    dir.actualizado_por.rol.toLowerCase().includes(filtroActualizadoPor.trim().toLowerCase()))
+                dir.actualizado_por?.nombre?.toLowerCase().includes(filtroActualizadoPor.trim().toLowerCase())
             );
         }
 
         setDireccionesFiltradas(filtrado);
-    };
-    const eliminarDireccion = async (id: number) => {
-        if (!window.confirm('¿Estás seguro de eliminar esta dirección administrativa?')) return;
-        try {
-            const token = localStorage.getItem('token');
-            await axios.delete(`/parametros/direcciones-administrativas/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            obtenerDirecciones();
-        } catch (error) {
-            console.error('Error al eliminar la dirección administrativa:', error);
-        }
-    };
+    }, [direcciones, filtroCodigo, filtroDescripcion, filtroCreadoPor, filtroActualizadoPor, estadoFiltro]);
+
     const cambiarEstado = async (id: number) => {
-        if (!window.confirm('¿Estás seguro de cambiar el estado de esta dirección?')) return;
+        if (!window.confirm('¿Estás seguro de cambiar el estado de esta dirección administrativa?')) return;
         try {
             const token = localStorage.getItem('token');
             await axios.put(`/parametros/direcciones-administrativas/${id}/cambiar-estado`, null, {
@@ -151,23 +124,17 @@ const DireccionesAdministrativas = () => {
 
     const exportarPDF = async () => {
         const token = localStorage.getItem('token');
-
         const estadoSeleccionado =
             estadoFiltro === 'activos'
                 ? 'ACTIVO'
                 : estadoFiltro === 'inactivos'
                     ? 'INACTIVO'
                     : 'todos';
-
         try {
             const response = await axios.get(
                 `/parametros/direcciones-administrativas/exportar/pdf?estado=${estadoSeleccionado}`,
-                {
-                    responseType: 'blob',
-                    headers: { Authorization: `Bearer ${token}` },
-                }
+                { responseType: 'blob', headers: { Authorization: `Bearer ${token}` } }
             );
-
             const blob = new Blob([response.data as Blob], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
             window.open(url, '_blank');
@@ -177,27 +144,42 @@ const DireccionesAdministrativas = () => {
         }
     };
 
-
+    // 🔒 Si no tiene permiso para listar
+    if (!permisos.includes('direcciones-administrativas:listar')) {
+        return (
+            <div className="container mt-5 text-center">
+                <h4 className="text-danger">
+                    <i className="bi bi-shield-lock-fill me-2"></i>
+                    Acceso denegado
+                </h4>
+                <p>No tienes permiso para ver las direcciones administrativas.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="container mt-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h4 className="mb-0">Direcciones Administrativas</h4>
-                    <p className="text-muted small">Gestión de registros por Dirección Administrativa</p>
+                    <p className="text-muted small">Gestión de registros de direcciones administrativas</p>
                 </div>
 
                 <div className="d-flex flex-wrap align-items-center gap-2">
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => navigate('/parametros/direcciones-administrativas/nueva')}
-                    >
-                        <i className="bi bi-plus-lg me-1"></i> Nueva Dirección
-                    </button>
+                    {permisos.includes('direcciones-administrativas:crear') && (
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => navigate('/parametros/direcciones-administrativas/nueva')}
+                        >
+                            <i className="bi bi-plus-lg me-1"></i> Nueva Dirección
+                        </button>
+                    )}
 
-                    <button className="btn btn-outline-success" onClick={exportarPDF}>
-                        <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
-                    </button>
+                    {permisos.includes('direcciones-administrativas:exportar-pdf') && (
+                        <button className="btn btn-outline-success" onClick={exportarPDF}>
+                            <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                        </button>
+                    )}
 
                     <button
                         className="btn btn-outline-secondary"
@@ -219,8 +201,8 @@ const DireccionesAdministrativas = () => {
                         </select>
                     </div>
                 </div>
-
             </div>
+
             <div className="table-responsive">
                 <table className="table table-bordered table-hover align-middle">
                     <thead className="table-light">
@@ -235,54 +217,11 @@ const DireccionesAdministrativas = () => {
                             <th>Fecha de Actualización</th>
                             <th>Acciones</th>
                         </tr>
-                        <tr>
-                            <th></th>
-                            <th>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    placeholder="Filtrar código"
-                                    value={filtroCodigo}
-                                    onChange={(e) => setFiltroCodigo(e.target.value)}
-                                />
-                            </th>
-                            <th>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    placeholder="Filtrar descripción"
-                                    value={filtroDescripcion}
-                                    onChange={(e) => setFiltroDescripcion(e.target.value)}
-                                />
-                            </th>
-                            <th></th>
-                            <th>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    placeholder="Filtrar creado por"
-                                    value={filtroCreadoPor}
-                                    onChange={(e) => setFiltroCreadoPor(e.target.value)}
-                                />
-                            </th>
-                            <th></th>
-                            <th>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    placeholder="Filtrar actualizado por"
-                                    value={filtroActualizadoPor}
-                                    onChange={(e) => setFiltroActualizadoPor(e.target.value)}
-                                />
-                            </th>
-                            <th></th>
-                            <th></th>
-                        </tr>
                     </thead>
                     <tbody>
                         {cargando ? (
                             <tr>
-                                <td colSpan={8} className="text-center">Cargando datos...</td>
+                                <td colSpan={9} className="text-center">Cargando...</td>
                             </tr>
                         ) : direccionesFiltradas.length > 0 ? (
                             direccionesFiltradas.map((item, index) => (
@@ -291,42 +230,36 @@ const DireccionesAdministrativas = () => {
                                     <td>{item.codigo}</td>
                                     <td>{item.descripcion}</td>
                                     <td>{item.estado}</td>
+                                    <td>{item.creado_por?.nombre || '—'}</td>
+                                    <td>{new Date(item.created_at).toLocaleDateString('es-BO')}</td>
+                                    <td>{item.actualizado_por?.nombre || '—'}</td>
+                                    <td>{item.updated_at ? new Date(item.updated_at).toLocaleDateString('es-BO') : '—'}</td>
                                     <td>
-                                        {item.creado_por
-                                            ? `${item.creado_por.nombre} (${item.creado_por.rol})`
-                                            : '—'}
-                                    </td>
-                                    <td>{item.created_at ? new Date(item.created_at).toLocaleDateString('es-BO') : '—'}</td>
-                                    <td>
-                                        {item.actualizado_por
-                                            ? `${item.actualizado_por.nombre} (${item.actualizado_por.rol})`
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        {item.updated_at
-                                            ? new Date(item.updated_at).toLocaleDateString('es-BO')
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        <button
-                                            className="btn btn-sm btn-warning me-2"
-                                            onClick={() => navigate(`/parametros/direcciones-administrativas/editar/${item.id}`)}
-                                        >
-                                            <i className="bi bi-pencil-square"></i>
-                                        </button>
-                                        <button
-                                            className={`btn btn-sm ${item.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
-                                            title={item.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
-                                            onClick={() => cambiarEstado(item.id)}
-                                        >
-                                            <i className="bi bi-arrow-repeat"></i>
-                                        </button>
+                                        {permisos.includes('direcciones-administrativas:editar') && (
+                                            <button
+                                                className="btn btn-sm btn-warning me-2"
+                                                onClick={() => navigate(`/parametros/direcciones-administrativas/editar/${item.id}`)}
+                                            >
+                                                <i className="bi bi-pencil-square"></i>
+                                            </button>
+                                        )}
+
+                                        {(permisos.includes('direcciones-administrativas:cambiar-estado') ||
+                                            permisos.includes('direcciones-administrativas:eliminar')) && (
+                                                <button
+                                                    className={`btn btn-sm ${item.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
+                                                    title={item.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
+                                                    onClick={() => cambiarEstado(item.id)}
+                                                >
+                                                    <i className="bi bi-arrow-repeat"></i>
+                                                </button>
+                                            )}
                                     </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={8} className="text-center">No hay registros.</td>
+                                <td colSpan={9} className="text-center">No hay registros.</td>
                             </tr>
                         )}
                     </tbody>

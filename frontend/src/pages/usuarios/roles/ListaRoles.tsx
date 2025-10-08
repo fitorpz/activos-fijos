@@ -66,10 +66,16 @@ const ListaRoles: React.FC = () => {
                                     <td>{rol.descripcion || <i className="text-muted">—</i>}</td>
                                     <td>{rol.slug || <i className="text-muted">—</i>}</td>
                                     <td>
-                                        {rol.permisos && rol.permisos.length > 0
-                                            ? rol.permisos.map(p => p.nombre).join(', ')
-                                            : <i className="text-muted">Sin permisos</i>
-                                        }
+                                        {rol.permisos && rol.permisos.length > 0 ? (
+                                            <>
+                                                {rol.permisos.slice(0, 3).map(p => p.nombre).join(', ')}
+                                                {rol.permisos.length > 3 && (
+                                                    <span className="text-muted"> y {rol.permisos.length - 3} más</span>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <i className="text-muted">Sin permisos</i>
+                                        )}
                                     </td>
                                     <td>
                                         <button

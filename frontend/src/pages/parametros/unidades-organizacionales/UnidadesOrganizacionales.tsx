@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
+import { obtenerPermisosUsuario } from '../../../utils/permisos'; // ✅ para control de permisos
 
 export interface Usuario {
     id: number;
@@ -29,6 +30,7 @@ export interface UnidadOrganizacional {
 
 const UnidadesOrganizacionales = () => {
     const [unidades, setUnidades] = useState<UnidadOrganizacional[]>([]);
+    const [permisos, setPermisos] = useState<string[]>([]); // ✅ permisos del usuario
     const [cargando, setCargando] = useState(true);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
     const [filtros, setFiltros] = useState({
@@ -39,6 +41,23 @@ const UnidadesOrganizacionales = () => {
         creado_por: '',
         actualizado_por: '',
     });
+    const navigate = useNavigate();
+
+    // ✅ Cargar permisos del usuario
+    useEffect(() => {
+        const permisosUsuario = obtenerPermisosUsuario();
+        setPermisos(permisosUsuario);
+    }, []);
+
+    // ✅ Obtener unidades solo si el usuario tiene permiso
+    useEffect(() => {
+        if (permisos.includes('unidades-organizacionales:listar')) {
+            obtenerUnidades();
+        } else {
+            setCargando(false);
+        }
+    }, [estadoFiltro, permisos]);
+
     const manejarCambioFiltro = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) => {
@@ -48,14 +67,10 @@ const UnidadesOrganizacionales = () => {
             [name]: value,
         }));
     };
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        obtenerUnidades();
-    }, [estadoFiltro]);
 
     const obtenerUnidades = async () => {
         setCargando(true);
+        const token = localStorage.getItem('token');
         try {
             const res = await axios.get<UnidadOrganizacional[]>(
                 '/parametros/unidades-organizacionales',
@@ -70,6 +85,7 @@ const UnidadesOrganizacionales = () => {
                                         : 'todos',
                         }
                         : {},
+                    headers: { Authorization: `Bearer ${token}` },
                 }
             );
             setUnidades(res.data);
@@ -80,20 +96,13 @@ const UnidadesOrganizacionales = () => {
         }
     };
 
-    const eliminarUnidad = async (id: number) => {
-        if (!window.confirm('¿Estás seguro de eliminar esta unidad organizacional?')) return;
-        try {
-            await axios.delete(`/parametros/unidades-organizacionales/${id}`);
-            obtenerUnidades();
-        } catch (error) {
-            console.error('Error al eliminar la unidad organizacional:', error);
-        }
-    };
-
     const cambiarEstado = async (id: number) => {
         if (!window.confirm('¿Estás seguro de cambiar el estado de esta unidad organizacional?')) return;
         try {
-            await axios.put(`/parametros/unidades-organizacionales/${id}/cambiar-estado`);
+            const token = localStorage.getItem('token');
+            await axios.put(`/parametros/unidades-organizacionales/${id}/cambiar-estado`, null, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             obtenerUnidades();
         } catch (error) {
             console.error('Error al cambiar estado:', error);
@@ -101,21 +110,18 @@ const UnidadesOrganizacionales = () => {
     };
 
     const exportarPDF = async () => {
+        const token = localStorage.getItem('token');
         const estadoSeleccionado =
             estadoFiltro === 'activos'
                 ? 'ACTIVO'
                 : estadoFiltro === 'inactivos'
                     ? 'INACTIVO'
                     : 'todos';
-
         try {
             const response = await axios.get(
                 `/parametros/unidades-organizacionales/exportar/pdf?estado=${estadoSeleccionado}`,
-                {
-                    responseType: 'blob'
-                }
+                { responseType: 'blob', headers: { Authorization: `Bearer ${token}` } }
             );
-
             const blob = new Blob([response.data as Blob], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
             window.open(url, '_blank');
@@ -124,6 +130,19 @@ const UnidadesOrganizacionales = () => {
             alert('Ocurrió un error al exportar el PDF.');
         }
     };
+
+    // 🔒 Si no tiene permiso para listar
+    if (!permisos.includes('unidades-organizacionales:listar')) {
+        return (
+            <div className="container mt-5 text-center">
+                <h4 className="text-danger">
+                    <i className="bi bi-shield-lock-fill me-2"></i>
+                    Acceso denegado
+                </h4>
+                <p>No tienes permiso para ver las unidades organizacionales.</p>
+            </div>
+        );
+    }
 
     const unidadesFiltradas = [...unidades]
         .sort((a, b) => a.codigo.localeCompare(b.codigo))
@@ -160,19 +179,20 @@ const UnidadesOrganizacionales = () => {
                 </div>
 
                 <div className="d-flex flex-wrap align-items-center gap-2">
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => navigate('/parametros/unidades-organizacionales/registrar')}
-                    >
-                        <i className="bi bi-plus-lg me-1"></i> Nueva Unidad
-                    </button>
+                    {permisos.includes('unidades-organizacionales:crear') && (
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => navigate('/parametros/unidades-organizacionales/registrar')}
+                        >
+                            <i className="bi bi-plus-lg me-1"></i> Nueva Unidad
+                        </button>
+                    )}
 
-                    <button
-                        className="btn btn-outline-success"
-                        onClick={exportarPDF}
-                    >
-                        <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
-                    </button>
+                    {permisos.includes('unidades-organizacionales:exportar-pdf') && (
+                        <button className="btn btn-outline-success" onClick={exportarPDF}>
+                            <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                        </button>
+                    )}
 
                     <button
                         className="btn btn-outline-secondary"
@@ -196,7 +216,6 @@ const UnidadesOrganizacionales = () => {
                 </div>
             </div>
 
-
             <div className="table-responsive">
                 <table className="table table-bordered table-hover align-middle">
                     <thead className="table-light">
@@ -211,74 +230,6 @@ const UnidadesOrganizacionales = () => {
                             <th>Actualizado por</th>
                             <th>Fecha de Actualización</th>
                             <th>Acciones</th>
-                        </tr>
-                        <tr>
-                            <th></th>
-                            <th>
-                                <input
-                                    type="text"
-                                    name="codigo"
-                                    value={filtros.codigo}
-                                    onChange={manejarCambioFiltro}
-                                    className="form-control form-control-sm"
-                                    placeholder="Buscar código"
-                                />
-                            </th>
-                            <th>
-                                <input
-                                    type="text"
-                                    name="descripcion"
-                                    value={filtros.descripcion}
-                                    onChange={manejarCambioFiltro}
-                                    className="form-control form-control-sm"
-                                    placeholder="Buscar descripción"
-                                />
-                            </th>
-                            <th>
-                                <input
-                                    type="text"
-                                    name="area"
-                                    value={filtros.area}
-                                    onChange={manejarCambioFiltro}
-                                    className="form-control form-control-sm"
-                                    placeholder="Buscar área"
-                                />
-                            </th>
-                            <th>
-                                <select
-                                    name="estado"
-                                    value={filtros.estado}
-                                    onChange={manejarCambioFiltro}
-                                    className="form-select form-select-sm"
-                                >
-                                    <option value="">Todos</option>
-                                    <option value="ACTIVO">Activo</option>
-                                    <option value="INACTIVO">Inactivo</option>
-                                </select>
-                            </th>
-                            <th>
-                                <input
-                                    type="text"
-                                    name="creado_por"
-                                    value={filtros.creado_por}
-                                    onChange={manejarCambioFiltro}
-                                    className="form-control form-control-sm"
-                                    placeholder="Buscar creador"
-                                />
-                            </th>
-                            <th></th>
-                            <th>
-                                <input
-                                    type="text"
-                                    name="actualizado_por"
-                                    value={filtros.actualizado_por}
-                                    onChange={manejarCambioFiltro}
-                                    className="form-control form-control-sm"
-                                    placeholder="Buscar actualizador"
-                                />
-                            </th>
-                            <th></th>
-                            <th></th>
                         </tr>
                     </thead>
 
@@ -295,40 +246,30 @@ const UnidadesOrganizacionales = () => {
                                     <td>{item.descripcion}</td>
                                     <td>{item.area?.codigo || '—'}</td>
                                     <td>{item.estado}</td>
+                                    <td>{item.creado_por?.nombre || '—'}</td>
+                                    <td>{new Date(item.created_at).toLocaleDateString('es-BO')}</td>
+                                    <td>{item.actualizado_por?.nombre || '—'}</td>
+                                    <td>{item.updated_at ? new Date(item.updated_at).toLocaleDateString('es-BO') : '—'}</td>
                                     <td>
-                                        {item.creado_por
-                                            ? `${item.creado_por.nombre}${item.creado_por.rol ? ` (${item.creado_por.rol})` : ''}`
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        {item.created_at
-                                            ? new Date(item.created_at).toLocaleDateString('es-BO')
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        {item.actualizado_por
-                                            ? `${item.actualizado_por.nombre}${item.actualizado_por.rol ? ` (${item.actualizado_por.rol})` : ''}`
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        {item.updated_at
-                                            ? new Date(item.updated_at).toLocaleDateString('es-BO')
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        <button
-                                            className="btn btn-sm btn-warning me-2"
-                                            onClick={() => navigate(`/parametros/unidades-organizacionales/editar/${item.id}`)}
-                                        >
-                                            <i className="bi bi-pencil-square"></i>
-                                        </button>
-                                        <button
-                                            className={`btn btn-sm ${item.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
-                                            title={item.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
-                                            onClick={() => cambiarEstado(item.id)}
-                                        >
-                                            <i className="bi bi-arrow-repeat"></i>
-                                        </button>
+                                        {permisos.includes('unidades-organizacionales:editar') && (
+                                            <button
+                                                className="btn btn-sm btn-warning me-2"
+                                                onClick={() => navigate(`/parametros/unidades-organizacionales/editar/${item.id}`)}
+                                            >
+                                                <i className="bi bi-pencil-square"></i>
+                                            </button>
+                                        )}
+
+                                        {(permisos.includes('unidades-organizacionales:cambiar-estado') ||
+                                            permisos.includes('unidades-organizacionales:eliminar')) && (
+                                                <button
+                                                    className={`btn btn-sm ${item.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
+                                                    title={item.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
+                                                    onClick={() => cambiarEstado(item.id)}
+                                                >
+                                                    <i className="bi bi-arrow-repeat"></i>
+                                                </button>
+                                            )}
                                     </td>
                                 </tr>
                             ))

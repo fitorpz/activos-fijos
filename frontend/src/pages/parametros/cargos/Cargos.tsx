@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
+import { obtenerPermisosUsuario } from '../../../utils/permisos'; // ✅ Importar control de permisos
 
 export interface Usuario {
     id: number;
@@ -12,30 +13,42 @@ export interface Usuario {
 export interface Cargo {
     id: number;
     codigo: string;
-    descripcion: string;
+    cargo: string;
+    descripcion?: string;
     estado: 'ACTIVO' | 'INACTIVO';
     creado_por: Usuario;
     created_at: string;
     actualizado_por?: Usuario | null;
     updated_at?: string | null;
-    cargo: string;
-
 }
 
 const Cargos = () => {
     const [cargos, setCargos] = useState<Cargo[]>([]);
+    const [cargosFiltrados, setCargosFiltrados] = useState<Cargo[]>([]);
     const [cargando, setCargando] = useState(true);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
+    const [permisos, setPermisos] = useState<string[]>([]); // ✅ Permisos del usuario
     const navigate = useNavigate();
+
     const [filtroCodigo, setFiltroCodigo] = useState('');
     const [filtroDescripcion, setFiltroDescripcion] = useState('');
     const [filtroCreadoPor, setFiltroCreadoPor] = useState('');
     const [filtroActualizadoPor, setFiltroActualizadoPor] = useState('');
-    const [cargosFiltrados, setCargosFiltrados] = useState<Cargo[]>([]);
 
+    // ✅ Cargar permisos del usuario
     useEffect(() => {
-        obtenerCargos();
-    }, [estadoFiltro]);
+        const permisosUsuario = obtenerPermisosUsuario();
+        setPermisos(permisosUsuario);
+    }, []);
+
+    // ✅ Obtener cargos solo si tiene permiso
+    useEffect(() => {
+        if (permisos.includes('cargos:listar')) {
+            obtenerCargos();
+        } else {
+            setCargando(false);
+        }
+    }, [estadoFiltro, permisos]);
 
     useEffect(() => {
         aplicarFiltros();
@@ -45,19 +58,15 @@ const Cargos = () => {
         const token = localStorage.getItem('token');
         try {
             const res = await axios.get<Cargo[]>('/parametros/cargos', {
-                params: estadoFiltro
-                    ? {
-                        estado:
-                            estadoFiltro === 'activos'
-                                ? 'ACTIVO'
-                                : estadoFiltro === 'inactivos'
-                                    ? 'INACTIVO'
-                                    : 'todos',
-                    }
-                    : {},
-                headers: {
-                    Authorization: `Bearer ${token}`,
+                params: {
+                    estado:
+                        estadoFiltro === 'activos'
+                            ? 'ACTIVO'
+                            : estadoFiltro === 'inactivos'
+                                ? 'INACTIVO'
+                                : 'todos',
                 },
+                headers: { Authorization: `Bearer ${token}` },
             });
             setCargos(res.data);
         } catch (error) {
@@ -71,28 +80,25 @@ const Cargos = () => {
         let resultado = [...cargos];
 
         if (filtroCodigo.trim() !== '') {
-            resultado = resultado.filter((c) =>
-                (c.codigo || '').toLowerCase().includes(filtroCodigo.toLowerCase())
-            );
+            resultado = resultado.filter((c) => c.codigo.toLowerCase().includes(filtroCodigo.toLowerCase()));
         }
         if (filtroDescripcion.trim() !== '') {
             resultado = resultado.filter((c) =>
-                ((c.descripcion || '') + ' ' + (c.cargo || '')).toLowerCase().includes(filtroDescripcion.toLowerCase())
+                (c.descripcion || c.cargo).toLowerCase().includes(filtroDescripcion.toLowerCase())
             );
         }
         if (filtroCreadoPor.trim() !== '') {
             resultado = resultado.filter((c) =>
-                (c.creado_por?.nombre || '').toLowerCase().includes(filtroCreadoPor.toLowerCase())
+                c.creado_por?.nombre?.toLowerCase().includes(filtroCreadoPor.toLowerCase())
             );
         }
         if (filtroActualizadoPor.trim() !== '') {
             resultado = resultado.filter((c) =>
-                (c.actualizado_por?.nombre || '').toLowerCase().includes(filtroActualizadoPor.toLowerCase())
+                c.actualizado_por?.nombre?.toLowerCase().includes(filtroActualizadoPor.toLowerCase())
             );
         }
 
         resultado.sort((a, b) => a.codigo.localeCompare(b.codigo));
-
         setCargosFiltrados(resultado);
     };
 
@@ -101,42 +107,42 @@ const Cargos = () => {
         try {
             const token = localStorage.getItem('token');
             await axios.put(`/parametros/cargos/${id}/cambiar-estado`, null, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: { Authorization: `Bearer ${token}` },
             });
             obtenerCargos();
         } catch (error) {
-            console.error('Error al cambiar el estado del cargo:', error);
+            console.error('Error al cambiar estado:', error);
         }
     };
 
     const exportarPDF = async () => {
         const token = localStorage.getItem('token');
-        const estadoSeleccionado =
-            estadoFiltro === 'activos'
-                ? 'ACTIVO'
-                : estadoFiltro === 'inactivos'
-                    ? 'INACTIVO'
-                    : 'todos';
-
+        const estado = estadoFiltro === 'activos' ? 'ACTIVO' : estadoFiltro === 'inactivos' ? 'INACTIVO' : 'todos';
         try {
-            const response = await axios.get(
-                `/parametros/cargos/exportar/pdf?estado=${estadoSeleccionado}`,
-                {
-                    responseType: 'blob',
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
-
-            const blob = new Blob([response.data as Blob], { type: 'application/pdf' });
+            const res = await axios.get(`/parametros/cargos/exportar/pdf?estado=${estado}`, {
+                responseType: 'blob',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const blob = new Blob([res.data as Blob], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
             window.open(url, '_blank');
         } catch (error) {
             console.error('❌ Error al exportar PDF:', error);
-            alert('Ocurrió un error al exportar el PDF.');
         }
     };
+
+    // 🔒 Si no tiene permiso para listar
+    if (!permisos.includes('cargos:listar')) {
+        return (
+            <div className="container mt-5 text-center">
+                <h4 className="text-danger">
+                    <i className="bi bi-shield-lock-fill me-2"></i>
+                    Acceso denegado
+                </h4>
+                <p>No tienes permiso para ver los cargos.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="container mt-4">
@@ -147,21 +153,19 @@ const Cargos = () => {
                 </div>
 
                 <div className="d-flex flex-wrap align-items-center gap-2">
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => navigate('/parametros/cargos/registrar')}
-                    >
-                        <i className="bi bi-plus-lg me-1"></i> Nuevo Cargo
-                    </button>
+                    {permisos.includes('cargos:crear') && (
+                        <button className="btn btn-primary" onClick={() => navigate('/parametros/cargos/registrar')}>
+                            <i className="bi bi-plus-lg me-1"></i> Nuevo Cargo
+                        </button>
+                    )}
 
-                    <button className="btn btn-outline-success" onClick={exportarPDF}>
-                        <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
-                    </button>
+                    {permisos.includes('cargos:exportar-pdf') && (
+                        <button className="btn btn-outline-success" onClick={exportarPDF}>
+                            <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                        </button>
+                    )}
 
-                    <button
-                        className="btn btn-outline-secondary"
-                        onClick={() => navigate('/parametros')}
-                    >
+                    <button className="btn btn-outline-secondary" onClick={() => navigate('/parametros')}>
                         <i className="bi bi-arrow-left me-1"></i> Volver a Parámetros
                     </button>
 
@@ -184,65 +188,20 @@ const Cargos = () => {
                 <table className="table table-bordered table-hover align-middle">
                     <thead className="table-light">
                         <tr>
-                            <th>Nro.</th>
+                            <th>#</th>
                             <th>Código</th>
                             <th>Descripción</th>
                             <th>Estado</th>
                             <th>Creado por</th>
-                            <th>Fecha de Registro</th>
+                            <th>F. Registro</th>
                             <th>Actualizado por</th>
-                            <th>Fecha de Actualización</th>
+                            <th>F. Actualización</th>
                             <th>Acciones</th>
-                        </tr>
-                        <tr>
-                            <th></th>
-                            <th>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    placeholder="Filtrar código"
-                                    value={filtroCodigo}
-                                    onChange={(e) => setFiltroCodigo(e.target.value)}
-                                />
-                            </th>
-                            <th>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    placeholder="Filtrar descripción"
-                                    value={filtroDescripcion}
-                                    onChange={(e) => setFiltroDescripcion(e.target.value)}
-                                />
-                            </th>
-                            <th></th> {/* No filtro para estado acá, ya tienes filtro general */}
-                            <th>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    placeholder="Filtrar creado por"
-                                    value={filtroCreadoPor}
-                                    onChange={(e) => setFiltroCreadoPor(e.target.value)}
-                                />
-                            </th>
-                            <th></th>
-                            <th>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    placeholder="Filtrar actualizado por"
-                                    value={filtroActualizadoPor}
-                                    onChange={(e) => setFiltroActualizadoPor(e.target.value)}
-                                />
-                            </th>
-                            <th></th>
-                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         {cargando ? (
-                            <tr>
-                                <td colSpan={9} className="text-center">Cargando datos...</td>
-                            </tr>
+                            <tr><td colSpan={9} className="text-center">Cargando...</td></tr>
                         ) : cargosFiltrados.length > 0 ? (
                             cargosFiltrados.map((cargo, index) => (
                                 <tr key={cargo.id}>
@@ -250,43 +209,35 @@ const Cargos = () => {
                                     <td>{cargo.codigo}</td>
                                     <td>{cargo.cargo}</td>
                                     <td>{cargo.estado}</td>
-                                    <td>
-                                        {cargo.creado_por
-                                            ? `${cargo.creado_por.nombre}${cargo.creado_por.rol ? ` (${cargo.creado_por.rol})` : ''}`
-                                            : '—'}
-                                    </td>
+                                    <td>{cargo.creado_por?.nombre || '—'}</td>
                                     <td>{new Date(cargo.created_at).toLocaleDateString('es-BO')}</td>
+                                    <td>{cargo.actualizado_por?.nombre || '—'}</td>
+                                    <td>{cargo.updated_at ? new Date(cargo.updated_at).toLocaleDateString('es-BO') : '—'}</td>
                                     <td>
-                                        {cargo.actualizado_por
-                                            ? `${cargo.actualizado_por.nombre}${cargo.actualizado_por.rol ? ` (${cargo.actualizado_por.rol})` : ''}`
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        {cargo.updated_at
-                                            ? new Date(cargo.updated_at).toLocaleDateString('es-BO')
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        <button
-                                            className="btn btn-sm btn-warning me-2"
-                                            onClick={() => navigate(`/parametros/cargos/editar/${cargo.id}`)}
-                                        >
-                                            <i className="bi bi-pencil-square"></i>
-                                        </button>
-                                        <button
-                                            className={`btn btn-sm ${cargo.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
-                                            title={cargo.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
-                                            onClick={() => cambiarEstado(cargo.id)}
-                                        >
-                                            <i className="bi bi-arrow-repeat"></i>
-                                        </button>
+                                        {permisos.includes('cargos:editar') && (
+                                            <button
+                                                className="btn btn-sm btn-warning me-2"
+                                                onClick={() => navigate(`/parametros/cargos/editar/${cargo.id}`)}
+                                            >
+                                                <i className="bi bi-pencil-square"></i>
+                                            </button>
+                                        )}
+
+                                        {(permisos.includes('cargos:cambiar-estado') ||
+                                            permisos.includes('cargos:eliminar')) && (
+                                                <button
+                                                    className={`btn btn-sm ${cargo.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
+                                                    title={cargo.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
+                                                    onClick={() => cambiarEstado(cargo.id)}
+                                                >
+                                                    <i className="bi bi-arrow-repeat"></i>
+                                                </button>
+                                            )}
                                     </td>
                                 </tr>
                             ))
                         ) : (
-                            <tr>
-                                <td colSpan={9} className="text-center">No hay registros.</td>
-                            </tr>
+                            <tr><td colSpan={9} className="text-center">No hay registros.</td></tr>
                         )}
                     </tbody>
                 </table>

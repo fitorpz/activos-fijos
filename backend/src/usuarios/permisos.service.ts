@@ -1,15 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Permiso } from './entities/permiso.entity';
 import { Repository } from 'typeorm';
+import { Permiso } from './entities/permiso.entity';
+import { CreatePermisoDto } from './dto/create-permiso.dto';
 
 @Injectable()
 export class PermisosService {
     constructor(
         @InjectRepository(Permiso)
-        private permisoRepository: Repository<Permiso>,
+        private readonly permisoRepository: Repository<Permiso>,
     ) { }
 
-    findAll() { return this.permisoRepository.find(); }
-    create(data: any) { return this.permisoRepository.save(data); }
+    async findAll() {
+        return await this.permisoRepository.find({
+            order: { modulo: 'ASC' }, // 👈 importante para agrupar
+        });
+    }
+
+    async create(createPermisoDto: CreatePermisoDto) {
+        const permiso = this.permisoRepository.create(createPermisoDto);
+        return await this.permisoRepository.save(permiso);
+    }
 }

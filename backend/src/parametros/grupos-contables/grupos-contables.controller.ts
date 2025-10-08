@@ -23,6 +23,9 @@ import { GruposContablesService } from './grupos-contables.service';
 import type { RequestWithUser } from 'src/interfaces/request-with-user.interface';
 import type { Response } from 'express';
 
+import { TienePermiso } from 'src/auth/permisos.decorator';
+import { PermisosGuard } from 'src/auth/guards/permisos.guard';
+
 import * as fs from 'fs';
 import * as path from 'path';
 import { generarPDFDesdeHTML } from '../../pdf/generarPDF';
@@ -38,6 +41,8 @@ export class GruposContablesController {
   ) { }
 
   @Post()
+  @UseGuards(PermisosGuard)
+  @TienePermiso('grupos-contables:crear')
   create(
     @Body() dto: CreateGruposContablesDto,
     @Req() req: RequestWithUser,
@@ -47,6 +52,8 @@ export class GruposContablesController {
   }
 
   @Get()
+  @UseGuards(PermisosGuard)
+  @TienePermiso('grupos-contables:listar')
   findAll(@Query('estado') estado: string) {
     return this.gruposService.findAll(estado);
   }
@@ -59,14 +66,15 @@ export class GruposContablesController {
   }
 
   @Get(':id')
+  @UseGuards(PermisosGuard)
+  @TienePermiso('grupos-contables:ver')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.gruposService.findOne(id);
   }
 
-
-
-
   @Put(':id')
+  @UseGuards(PermisosGuard)
+  @TienePermiso('grupos-contables:editar')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateGruposContablesDto,
@@ -77,6 +85,8 @@ export class GruposContablesController {
   }
 
   @Put(':id/cambiar-estado')
+  @UseGuards(PermisosGuard)
+  @TienePermiso('grupos-contables:cambiar-estado')
   cambiarEstado(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: RequestWithUser,
@@ -86,11 +96,15 @@ export class GruposContablesController {
   }
 
   @Delete(':id')
+  @UseGuards(PermisosGuard)
+  @TienePermiso('grupos-contables:eliminar')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.gruposService.remove(id);
   }
 
   @Get('exportar/pdf')
+  @UseGuards(PermisosGuard)
+  @TienePermiso('grupos-contables:exportar-pdf')
   async exportarPDF(
     @Res() res: Response,
     @Query('estado') estado: string,

@@ -3,6 +3,10 @@ import { AuthService } from './auth.service';
 import { UserLogService } from '../user-log/user-log.service';
 import type { Request } from 'express';
 import { LoginUsuarioDto } from './dto/login-usuario.dto';
+import { UseGuards, Get } from '@nestjs/common';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import type { RequestWithUser } from 'src/interfaces/request-with-user.interface';
+
 
 @Controller('auth')
 export class AuthController {
@@ -47,5 +51,11 @@ export class AuthController {
         } catch (error) {
             throw new UnauthorizedException('Credenciales incorrectas');
         }
+    }
+    @UseGuards(JwtAuthGuard)
+    @Get('mis-permisos')
+    getMisPermisos(@Req() req: RequestWithUser) {
+        const usuario = req.user;
+        return usuario.rol?.permisos?.map((p) => p.nombre) || [];
     }
 }

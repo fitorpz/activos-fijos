@@ -25,7 +25,6 @@ export class UsuariosController {
         private readonly userLogService: UserLogService,
     ) { }
 
-    // ✅ Crear un nuevo usuario (protegido con JWT)
     @UseGuards(AuthGuard('jwt'))
     @Post()
     async create(
@@ -50,28 +49,24 @@ export class UsuariosController {
         };
     }
 
-    // ✅ Actualizar usuario (PUT)
     @UseGuards(AuthGuard('jwt'))
     @Put(':id')
     update(@Param('id') id: string, @Body() data: Partial<CreateUsuarioDto>) {
         return this.usuariosService.update(Number(id), data);
     }
 
-    // ✅ Actualización parcial (PATCH)
     @UseGuards(AuthGuard('jwt'))
     @Patch(':id')
     patch(@Param('id') id: string, @Body() data: Partial<CreateUsuarioDto>) {
         return this.usuariosService.update(Number(id), data);
     }
 
-    // ✅ Obtener todos los usuarios
     @UseGuards(AuthGuard('jwt'))
     @Get()
     findAll() {
         return this.usuariosService.findAll();
     }
 
-    // ✅ Obtener usuario por ID
     @UseGuards(AuthGuard('jwt'))
     @Get(':id')
     async findOne(@Param('id') id: number) {
@@ -80,17 +75,26 @@ export class UsuariosController {
         return usuario;
     }
 
-    // ✅ Eliminar usuario
     @UseGuards(AuthGuard('jwt'))
     @Delete(':id')
     remove(@Param('id') id: number) {
         return this.usuariosService.remove(id);
     }
-    // ✅ Restaurar usuario
+
     @UseGuards(AuthGuard('jwt'))
     @Patch('restaurar/:id')
     async restaurar(@Param('id') id: number) {
         await this.usuariosService.restaurar(id);
         return { message: 'Usuario restaurado correctamente' };
+    }
+    @UseGuards(AuthGuard('jwt'))
+    @Get('permisos/actualizados')
+    async obtenerPermisosActualizados(@Req() request: Request) {
+        const user = request.user as any;
+        if (!user || !user.id) {
+            throw new BadRequestException('Usuario no autenticado.');
+        }
+        const permisos = await this.usuariosService.obtenerPermisosPorUsuario(user.id);
+        return { permisos };
     }
 }

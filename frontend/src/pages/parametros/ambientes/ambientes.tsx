@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
+import { obtenerPermisosUsuario } from '../../../utils/permisos'; // ✅ Importar control de permisos
 
 export interface Usuario {
     id: number;
@@ -38,6 +39,7 @@ const Ambientes = () => {
     const [ambientes, setAmbientes] = useState<Ambiente[]>([]);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
     const [cargando, setCargando] = useState(true);
+    const [permisos, setPermisos] = useState<string[]>([]); // ✅ Permisos del usuario
     const [filtros, setFiltros] = useState({
         codigo: '',
         descripcion: '',
@@ -47,6 +49,22 @@ const Ambientes = () => {
         creado_por: '',
         actualizado_por: '',
     });
+
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const permisosUsuario = obtenerPermisosUsuario();
+        setPermisos(permisosUsuario);
+    }, []);
+
+    useEffect(() => {
+        if (permisos.includes('ambientes:listar')) {
+            obtenerAmbientes();
+        } else {
+            setCargando(false);
+        }
+    }, [estadoFiltro, permisos]);
+
     const manejarCambioFiltro = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) => {
@@ -56,15 +74,11 @@ const Ambientes = () => {
             [name]: value,
         }));
     };
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        obtenerAmbientes();
-    }, [estadoFiltro]);
 
     const obtenerAmbientes = async () => {
         setCargando(true);
         try {
+            const token = localStorage.getItem('token');
             const res = await axios.get<Ambiente[]>('/parametros/ambientes', {
                 params: {
                     estado:
@@ -74,6 +88,7 @@ const Ambientes = () => {
                                 ? 'INACTIVO'
                                 : 'todos',
                 },
+                headers: { Authorization: `Bearer ${token}` },
             });
             setAmbientes(res.data);
         } catch (error) {
@@ -86,7 +101,10 @@ const Ambientes = () => {
     const cambiarEstado = async (id: number) => {
         if (!window.confirm('¿Estás seguro de cambiar el estado de este ambiente?')) return;
         try {
-            await axios.put(`/parametros/ambientes/${id}/cambiar-estado`);
+            const token = localStorage.getItem('token');
+            await axios.put(`/parametros/ambientes/${id}/cambiar-estado`, null, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             obtenerAmbientes();
         } catch (error) {
             console.error('❌ Error al cambiar estado:', error);
@@ -94,6 +112,7 @@ const Ambientes = () => {
     };
 
     const exportarPDF = async () => {
+        const token = localStorage.getItem('token');
         const estadoSeleccionado =
             estadoFiltro === 'activos'
                 ? 'ACTIVO'
@@ -104,12 +123,10 @@ const Ambientes = () => {
         try {
             const response = await axios.get(
                 `/parametros/ambientes/exportar/pdf?estado=${estadoSeleccionado}`,
-                {
-                    responseType: 'blob',
-                }
+                { responseType: 'blob', headers: { Authorization: `Bearer ${token}` } }
             );
 
-            const blob = new Blob([response.data as BlobPart], { type: 'application/pdf' });
+            const blob = new Blob([response.data as Blob], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
             window.open(url, '_blank');
         } catch (error) {
@@ -117,6 +134,18 @@ const Ambientes = () => {
             alert('Ocurrió un error al exportar el PDF.');
         }
     };
+
+    // 🔒 Si no tiene permiso para listar
+    if (!permisos.includes('ambientes:listar')) {
+        return (
+            <div className="container mt-5 text-center">
+                <h4 className="text-danger">
+                    <i className="bi bi-shield-lock-fill me-2"></i> Acceso denegado
+                </h4>
+                <p>No tienes permiso para ver los ambientes.</p>
+            </div>
+        );
+    }
 
     const ambientesFiltrados = ambientes
         .sort((a, b) => a.codigo.localeCompare(b.codigo))
@@ -126,7 +155,7 @@ const Ambientes = () => {
             const filtroEstado = filtros.estado
                 ? ambiente.estado.toLowerCase() === filtros.estado.toLowerCase()
                 : true;
-            const filtroUnidadOrg = ambiente.unidad_organizacional?.codigo
+            const filtroUnidad = ambiente.unidad_organizacional?.codigo
                 ?.toLowerCase()
                 .includes(filtros.unidad_organizacional.toLowerCase());
             const filtroArea = ambiente.unidad_organizacional?.area?.codigo
@@ -143,7 +172,7 @@ const Ambientes = () => {
                 filtroCodigo &&
                 filtroDescripcion &&
                 filtroEstado &&
-                filtroUnidadOrg &&
+                filtroUnidad &&
                 filtroArea &&
                 filtroCreadoPor &&
                 filtroActualizadoPor
@@ -159,25 +188,29 @@ const Ambientes = () => {
                 </div>
 
                 <div className="d-flex flex-wrap align-items-center gap-2">
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => navigate('/parametros/ambientes/registrar')}
-                    >
-                        <i className="bi bi-plus-lg me-1"></i> Nuevo Ambiente
-                    </button>
+                    {permisos.includes('ambientes:crear') && (
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => navigate('/parametros/ambientes/registrar')}
+                        >
+                            <i className="bi bi-plus-lg me-1"></i> Nuevo Ambiente
+                        </button>
+                    )}
 
-                    <button
-                        className="btn btn-outline-success"
-                        onClick={exportarPDF}
-                    >
-                        <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
-                    </button>
+                    {permisos.includes('ambientes:exportar-pdf') && (
+                        <button
+                            className="btn btn-outline-success"
+                            onClick={exportarPDF}
+                        >
+                            <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                        </button>
+                    )}
 
                     <button
                         className="btn btn-outline-secondary"
                         onClick={() => navigate('/parametros')}
                     >
-                        <i className="bi bi-arrow-left me-1"></i> Volver a Parámetros
+                        <i className="bi bi-arrow-left me-1"></i> Volver
                     </button>
 
                     <div style={{ minWidth: '160px' }}>
@@ -195,7 +228,6 @@ const Ambientes = () => {
                 </div>
             </div>
 
-
             <div className="table-responsive">
                 <table className="table table-bordered table-hover align-middle">
                     <thead className="table-light">
@@ -212,91 +244,11 @@ const Ambientes = () => {
                             <th>Fecha de Actualización</th>
                             <th>Acciones</th>
                         </tr>
-                        <tr>
-                            <th></th>
-                            <th>
-                                <input
-                                    type="text"
-                                    name="area"
-                                    value={filtros.area}
-                                    onChange={manejarCambioFiltro}
-                                    className="form-control form-control-sm"
-                                    placeholder="Buscar área"
-                                />
-                            </th>
-                            <th>
-                                <input
-                                    type="text"
-                                    name="unidad_organizacional"
-                                    value={filtros.unidad_organizacional}
-                                    onChange={manejarCambioFiltro}
-                                    className="form-control form-control-sm"
-                                    placeholder="Buscar unidad"
-                                />
-                            </th>
-                            <th>
-                                <input
-                                    type="text"
-                                    name="codigo"
-                                    value={filtros.codigo}
-                                    onChange={manejarCambioFiltro}
-                                    className="form-control form-control-sm"
-                                    placeholder="Buscar código"
-                                />
-                            </th>
-                            <th>
-                                <input
-                                    type="text"
-                                    name="descripcion"
-                                    value={filtros.descripcion}
-                                    onChange={manejarCambioFiltro}
-                                    className="form-control form-control-sm"
-                                    placeholder="Buscar descripción"
-                                />
-                            </th>
-                            <th>
-                                <select
-                                    name="estado"
-                                    value={filtros.estado}
-                                    onChange={manejarCambioFiltro}
-                                    className="form-select form-select-sm"
-                                >
-                                    <option value="">Todos</option>
-                                    <option value="ACTIVO">Activo</option>
-                                    <option value="INACTIVO">Inactivo</option>
-                                </select>
-                            </th>
-                            <th>
-                                <input
-                                    type="text"
-                                    name="creado_por"
-                                    value={filtros.creado_por}
-                                    onChange={manejarCambioFiltro}
-                                    className="form-control form-control-sm"
-                                    placeholder="Buscar creador"
-                                />
-                            </th>
-                            <th></th>
-                            <th>
-                                <input
-                                    type="text"
-                                    name="actualizado_por"
-                                    value={filtros.actualizado_por}
-                                    onChange={manejarCambioFiltro}
-                                    className="form-control form-control-sm"
-                                    placeholder="Buscar actualizador"
-                                />
-                            </th>
-                            <th></th>
-                            <th></th>
-                        </tr>
                     </thead>
                     <tbody>
                         {cargando ? (
                             <tr>
-                                <td colSpan={11} className="text-center">
-                                    Cargando datos...
-                                </td>
+                                <td colSpan={11} className="text-center">Cargando datos...</td>
                             </tr>
                         ) : ambientesFiltrados.length > 0 ? (
                             ambientesFiltrados.map((item, index) => (
@@ -307,48 +259,36 @@ const Ambientes = () => {
                                     <td>{item.codigo}</td>
                                     <td>{item.descripcion}</td>
                                     <td>{item.estado}</td>
+                                    <td>{item.creado_por?.nombre || '—'}</td>
+                                    <td>{new Date(item.created_at).toLocaleDateString('es-BO')}</td>
+                                    <td>{item.actualizado_por?.nombre || '—'}</td>
+                                    <td>{item.updated_at ? new Date(item.updated_at).toLocaleDateString('es-BO') : '—'}</td>
                                     <td>
-                                        {item.creado_por
-                                            ? `${item.creado_por.nombre}${item.creado_por.rol ? ` (${item.creado_por.rol})` : ''}`
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        {item.created_at
-                                            ? new Date(item.created_at).toLocaleDateString('es-BO')
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        {item.actualizado_por
-                                            ? `${item.actualizado_por.nombre}${item.actualizado_por.rol ? ` (${item.actualizado_por.rol})` : ''}`
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        {item.updated_at
-                                            ? new Date(item.updated_at).toLocaleDateString('es-BO')
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        <button
-                                            className="btn btn-sm btn-warning me-2"
-                                            onClick={() => navigate(`/parametros/ambientes/editar/${item.id}`)}
-                                        >
-                                            <i className="bi bi-pencil-square"></i>
-                                        </button>
-                                        <button
-                                            className={`btn btn-sm ${item.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
-                                            title={item.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
-                                            onClick={() => cambiarEstado(item.id)}
-                                        >
-                                            <i className="bi bi-arrow-repeat"></i>
-                                        </button>
+                                        {permisos.includes('ambientes:editar') && (
+                                            <button
+                                                className="btn btn-sm btn-warning me-2"
+                                                onClick={() => navigate(`/parametros/ambientes/editar/${item.id}`)}
+                                            >
+                                                <i className="bi bi-pencil-square"></i>
+                                            </button>
+                                        )}
+
+                                        {(permisos.includes('ambientes:cambiar-estado') ||
+                                            permisos.includes('ambientes:eliminar')) && (
+                                                <button
+                                                    className={`btn btn-sm ${item.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
+                                                    title={item.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
+                                                    onClick={() => cambiarEstado(item.id)}
+                                                >
+                                                    <i className="bi bi-arrow-repeat"></i>
+                                                </button>
+                                            )}
                                     </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={11} className="text-center">
-                                    No hay registros.
-                                </td>
+                                <td colSpan={11} className="text-center">No hay registros.</td>
                             </tr>
                         )}
                     </tbody>

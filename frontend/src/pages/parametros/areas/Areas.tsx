@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../utils/axiosConfig';
+import { obtenerPermisosUsuario } from '../../../utils/permisos'; // ✅ Importación para control de permisos
 
 export interface Usuario {
     id: number;
@@ -22,6 +23,7 @@ export interface Area {
 
 const Areas = () => {
     const [areas, setAreas] = useState<Area[]>([]);
+    const [permisos, setPermisos] = useState<string[]>([]); // ✅ permisos del usuario
     const [cargando, setCargando] = useState(true);
     const [estadoFiltro, setEstadoFiltro] = useState<string>('activos');
     const [filtros, setFiltros] = useState({
@@ -32,6 +34,23 @@ const Areas = () => {
         actualizado_por: '',
     });
 
+    const navigate = useNavigate();
+
+    // ✅ Cargar permisos del usuario
+    useEffect(() => {
+        const permisosUsuario = obtenerPermisosUsuario();
+        setPermisos(permisosUsuario);
+    }, []);
+
+    // ✅ Obtener áreas solo si el usuario tiene permiso
+    useEffect(() => {
+        if (permisos.includes('areas:listar')) {
+            obtenerAreas();
+        } else {
+            setCargando(false);
+        }
+    }, [estadoFiltro, permisos]);
+
     const manejarCambioFiltro = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) => {
@@ -41,12 +60,6 @@ const Areas = () => {
             [name]: value,
         }));
     };
-
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        obtenerAreas();
-    }, [estadoFiltro]);
 
     const obtenerAreas = async () => {
         const token = localStorage.getItem('token');
@@ -62,9 +75,7 @@ const Areas = () => {
                                     : 'todos',
                     }
                     : {},
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: { Authorization: `Bearer ${token}` },
             });
             setAreas(res.data);
         } catch (error) {
@@ -79,9 +90,7 @@ const Areas = () => {
         try {
             const token = localStorage.getItem('token');
             await axios.put(`/parametros/areas/${id}/cambiar-estado`, null, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: { Authorization: `Bearer ${token}` },
             });
             obtenerAreas();
         } catch (error) {
@@ -101,10 +110,7 @@ const Areas = () => {
         try {
             const response = await axios.get(
                 `/parametros/areas/exportar/pdf?estado=${estadoSeleccionado}`,
-                {
-                    responseType: 'blob',
-                    headers: { Authorization: `Bearer ${token}` },
-                }
+                { responseType: 'blob', headers: { Authorization: `Bearer ${token}` } }
             );
 
             const blob = new Blob([response.data as Blob], { type: 'application/pdf' });
@@ -116,8 +122,22 @@ const Areas = () => {
         }
     };
 
-    const areasFiltradas = [...areas] // copiamos el array para no mutar el original
-        .sort((a, b) => a.codigo.localeCompare(b.codigo)) // ordenamos por código (alfabéticamente)
+    // 🔒 Bloqueo total si el usuario no tiene permiso para listar
+    if (!permisos.includes('areas:listar')) {
+        return (
+            <div className="container mt-5 text-center">
+                <h4 className="text-danger">
+                    <i className="bi bi-shield-lock-fill me-2"></i>
+                    Acceso denegado
+                </h4>
+                <p>No tienes permiso para ver las áreas.</p>
+            </div>
+        );
+    }
+
+    // ✅ Aplicar filtros
+    const areasFiltradas = [...areas]
+        .sort((a, b) => a.codigo.localeCompare(b.codigo))
         .filter((area) => {
             const filtroCodigo = area.codigo.toLowerCase().includes(filtros.codigo.toLowerCase());
             const filtroDescripcion = area.descripcion.toLowerCase().includes(filtros.descripcion.toLowerCase());
@@ -139,6 +159,7 @@ const Areas = () => {
                 filtroActualizadoPor
             );
         });
+
     return (
         <div className="container mt-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
@@ -148,16 +169,20 @@ const Areas = () => {
                 </div>
 
                 <div className="d-flex flex-wrap align-items-center gap-2">
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => navigate('/parametros/areas/registrar')}
-                    >
-                        <i className="bi bi-plus-lg me-1"></i> Nueva Área
-                    </button>
+                    {permisos.includes('areas:crear') && (
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => navigate('/parametros/areas/registrar')}
+                        >
+                            <i className="bi bi-plus-lg me-1"></i> Nueva Área
+                        </button>
+                    )}
 
-                    <button className="btn btn-outline-success" onClick={exportarPDF}>
-                        <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
-                    </button>
+                    {permisos.includes('areas:exportar-pdf') && (
+                        <button className="btn btn-outline-success" onClick={exportarPDF}>
+                            <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                        </button>
+                    )}
 
                     <button
                         className="btn btn-outline-secondary"
@@ -267,36 +292,30 @@ const Areas = () => {
                                     <td>{area.codigo}</td>
                                     <td>{area.descripcion}</td>
                                     <td>{area.estado}</td>
-                                    <td>
-                                        {area.creado_por
-                                            ? `${area.creado_por.nombre}${area.creado_por.rol ? ` (${area.creado_por.rol})` : ''}`
-                                            : '—'}
-                                    </td>
+                                    <td>{area.creado_por?.nombre || '—'}</td>
                                     <td>{new Date(area.created_at).toLocaleDateString('es-BO')}</td>
+                                    <td>{area.actualizado_por?.nombre || '—'}</td>
+                                    <td>{area.updated_at ? new Date(area.updated_at).toLocaleDateString('es-BO') : '—'}</td>
                                     <td>
-                                        {area.actualizado_por
-                                            ? `${area.actualizado_por.nombre}${area.actualizado_por.rol ? ` (${area.actualizado_por.rol})` : ''}`
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        {area.updated_at
-                                            ? new Date(area.updated_at).toLocaleDateString('es-BO')
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        <button
-                                            className="btn btn-sm btn-warning me-2"
-                                            onClick={() => navigate(`/parametros/areas/editar/${area.id}`)}
-                                        >
-                                            <i className="bi bi-pencil-square"></i>
-                                        </button>
-                                        <button
-                                            className={`btn btn-sm ${area.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
-                                            title={area.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
-                                            onClick={() => cambiarEstado(area.id)}
-                                        >
-                                            <i className="bi bi-arrow-repeat"></i>
-                                        </button>
+                                        {permisos.includes('areas:editar') && (
+                                            <button
+                                                className="btn btn-sm btn-warning me-2"
+                                                onClick={() => navigate(`/parametros/areas/editar/${area.id}`)}
+                                            >
+                                                <i className="bi bi-pencil-square"></i>
+                                            </button>
+                                        )}
+
+                                        {(permisos.includes('areas:cambiar-estado') ||
+                                            permisos.includes('areas:eliminar')) && (
+                                                <button
+                                                    className={`btn btn-sm ${area.estado === 'ACTIVO' ? 'btn-secondary' : 'btn-success'}`}
+                                                    title={area.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
+                                                    onClick={() => cambiarEstado(area.id)}
+                                                >
+                                                    <i className="bi bi-arrow-repeat"></i>
+                                                </button>
+                                            )}
                                     </td>
                                 </tr>
                             ))

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { Usuario } from './entities/usuario.entity';
@@ -105,5 +105,17 @@ export class UsuariosService {
             throw new Error('El usuario no existe o ya está activo');
         }
         return { message: 'Usuario restaurado correctamente' };
+    }
+    async obtenerPermisosPorUsuario(idUsuario: number) {
+        const usuario = await this.usuarioRepository.findOne({
+            where: { id: idUsuario },
+            relations: ['rol', 'rol.permisos'], 
+        });
+
+        if (!usuario) {
+            throw new NotFoundException('Usuario no encontrado');
+        }
+        const permisos = usuario.rol?.permisos?.map((p) => p.nombre) || [];
+        return permisos;
     }
 }

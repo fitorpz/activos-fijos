@@ -50,6 +50,24 @@ export class UfvsController {
     return this.ufvsService.findAll(estado);
   }
 
+  @Get('actual')
+  async obtenerUfvActual() {
+    // Obtiene la última UFV registrada (más reciente por fecha)
+    const ultimaUfv = await this.ufvRepository.find({
+      order: { fecha: 'DESC' },
+      take: 1,
+    });
+
+    if (!ultimaUfv.length) {
+      return { valor: null, fecha: null };
+    }
+
+    return {
+      valor: ultimaUfv[0].tc,
+      fecha: ultimaUfv[0].fecha,
+    };
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.ufvsService.findOne(id);
@@ -102,4 +120,7 @@ export class UfvsController {
       return res.status(500).json({ message: 'Error al exportar PDF' });
     }
   }
+
+
+
 }

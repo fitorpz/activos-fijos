@@ -17,11 +17,13 @@ import { PermisosController } from './permisos.controller';
 import { UserLogModule } from '../user-log/user-log.module';
 import { AuditoriaRolesPermisosModule } from 'src/auditoria/auditoria-roles-permisos.module';
 
+import { PermisosModule } from './permisos.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Usuario, Rol, Permiso]),
     UserLogModule,
     AuditoriaRolesPermisosModule,
+    PermisosModule,
   ],
   controllers: [
     UsuariosController,
